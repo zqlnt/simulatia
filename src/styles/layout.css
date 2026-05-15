@@ -4,9 +4,14 @@
 #v4Canvas.transitioning{filter:blur(4px) brightness(.98)}
 .agent-solo-mode #v4Canvas.transitioning,.room-mode.agent-solo-mode #v4Canvas.transitioning{filter:none!important}
 #v4Labels{position:absolute;inset:0;z-index:7;pointer-events:none}
-#v4Labels .label{position:absolute;transform:translate(-50%,-100%);pointer-events:auto}
-#v4Labels .label-card{border-radius:17px;display:flex;align-items:center;gap:7px;padding:8px 10px;white-space:nowrap;background:rgba(255,255,255,.68);backdrop-filter:blur(32px) saturate(1.5);-webkit-backdrop-filter:blur(32px) saturate(1.5);box-shadow:0 12px 34px rgba(40,55,95,.14),inset 0 1px 0 rgba(255,255,255,.75);cursor:pointer;border:1px solid var(--edge)}
+#v4Labels .label{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;transition:opacity .5s cubic-bezier(.32,.72,0,1)}
+#v4Labels .label-card{border-radius:17px;display:flex;align-items:center;gap:7px;padding:8px 10px;white-space:nowrap;background:rgba(255,255,255,.68);backdrop-filter:blur(32px) saturate(1.5);-webkit-backdrop-filter:blur(32px) saturate(1.5);box-shadow:0 12px 34px rgba(40,55,95,.14),inset 0 1px 0 rgba(255,255,255,.75);cursor:pointer;border:1px solid var(--edge);transition:background .35s ease,box-shadow .35s ease,border-color .35s ease,transform .22s var(--ease-spring)}
+#v4Labels .label--building .label-card{background:rgba(255,255,255,.34);border-color:rgba(255,255,255,.38);box-shadow:0 8px 22px rgba(40,55,95,.08),inset 0 1px 0 rgba(255,255,255,.42);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2)}
+#v4Labels .label--building.label--active .label-card{background:rgba(255,255,255,.48);border-color:rgba(255,255,255,.52)}
 html[data-theme="dark"] #v4Labels .label-card{background:rgba(18,22,36,.74)}
+html[data-theme="dark"] #v4Labels .label--building .label-card{background:rgba(18,22,36,.36);border-color:rgba(255,255,255,.14);box-shadow:0 8px 22px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08)}
+html[data-theme="dark"] #v4Labels .label--building.label--active .label-card{background:rgba(18,22,36,.5);border-color:rgba(255,255,255,.2)}
+#v4Labels .label--building .stem{opacity:.45}
 #v4Labels .label-card b{font-size:12px}#v4Labels .label-card span{font-size:10px;color:var(--muted)}
 #v4Labels .label:hover .label-card{transform:translateY(-2px) scale(1.035)}
 #v4Labels .stem{width:1px;height:16px;margin:0 auto;background:linear-gradient(var(--edge),transparent)}
