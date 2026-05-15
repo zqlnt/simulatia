@@ -21,9 +21,15 @@ import './styles/mobile-layout-fixes.css';
 import './styles/panel-liquid-motion.css';
 
 import { createBootShell } from './ui/loading.js';
+import { collapsePanelsAtLaunch } from './ui/chrome.js';
+
+collapsePanelsAtLaunch();
 
 const BOOT_TOUR_MS = 4800;
 const BOOT_MIN_MS = 5500;
+const isCoarseMobile =
+  typeof window !== 'undefined' &&
+  window.matchMedia?.('(max-width: 760px), (pointer: coarse)')?.matches;
 const BOOT_MAX_MS = 24000;
 const FIRST_FRAME_TIMEOUT_MS = 10000;
 const BOOT_DONE_KEY = 'simulatia_boot_complete';
@@ -268,7 +274,8 @@ async function bootstrap() {
     await Promise.all([bootTourPromise, uiInitPromise]);
 
     const elapsed = performance.now() - bootStartedAt;
-    if (elapsed < BOOT_MIN_MS) await wait(BOOT_MIN_MS - elapsed);
+    const bootMin = isCoarseMobile ? 4200 : BOOT_MIN_MS;
+    if (elapsed < bootMin) await wait(bootMin - elapsed);
 
     if (!skipBootUI) boot.setProgress(100, 'Ready');
     await finishBoot();

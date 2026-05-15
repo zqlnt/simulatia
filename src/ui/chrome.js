@@ -36,6 +36,23 @@ function saveState(state) {
   }
 }
 
+/** Sync collapse before async boot — avoids full panels flashing on mobile. */
+export function collapsePanelsAtLaunch() {
+  if (typeof document === 'undefined') return;
+  document.body.classList.add(
+    'panel-top-collapsed',
+    'panel-bottom-collapsed',
+    'panel-left-collapsed',
+    'panel-right-collapsed'
+  );
+  PANELS.forEach((p) => {
+    const el = document.querySelector(p.selector);
+    if (!el) return;
+    el.classList.add('panel--collapsed');
+    el.setAttribute('aria-expanded', 'false');
+  });
+}
+
 function chromeIcons(panel) {
   if (panel.edge === 'left') {
     return { collapse: 'ti-chevron-left', expand: 'ti-chevron-right' };
@@ -218,11 +235,6 @@ export function initChrome() {
   );
 
   const state = loadState();
-  if (!sessionStorage.getItem('simulatia.inspectorRailV1')) {
-    state.inspector = false;
-    sessionStorage.setItem('simulatia.inspectorRailV1', '1');
-    saveState(state);
-  }
   const all = [...PANELS];
 
   function syncShellInsets() {
@@ -317,7 +329,11 @@ export function initChrome() {
   });
 
   all.forEach((p) => {
-    if (state[p.id]) setCollapsed(p.id, true);
+    const el = document.querySelector(p.selector);
+    if (!el) return;
+    syncChrome(el, true);
+    const mini = el.querySelector('.panel-mini-bar');
+    if (mini) mini.hidden = false;
   });
   syncShellInsets();
 

@@ -13,7 +13,7 @@
   html[data-theme="dark"] body.sim-booting{background:#050505}
 </style>
 </head>
-<body class="sim-booting">
+<body class="sim-booting panel-top-collapsed panel-bottom-collapsed panel-left-collapsed panel-right-collapsed">
 <div class="atmosphere" aria-hidden="true"><span class="orb"></span></div>
 <svg class="defs" aria-hidden="true" focusable="false">
   <defs>
@@ -61,7 +61,7 @@
 </div>
 
 <div class="app-shell" id="app">
-  <header class="topbar liquid-shell panel-surface">
+  <header class="topbar liquid-shell panel-surface panel--collapsed" aria-expanded="false">
     <div class="brand">
       <div class="logo-mark"><img alt="Simulatia logo" src="https://i.ibb.co/NdzzwpTr/Untitled-design-2026-02-09-T162032-994.png" onerror="this.parentElement.classList.add('logo-fallback')"></div>
       <div><div class="brand-title">Simulatia</div><div class="brand-sub">Agentic City OS</div></div>
@@ -78,7 +78,7 @@
     <button class="theme-switch" id="theme-toggle" aria-label="Toggle dark mode"><i class="ti ti-moon" id="theme-icon"></i></button>
   </header>
 
-  <aside class="sidebar liquid panel-surface">
+  <aside class="sidebar liquid panel-surface panel--collapsed" aria-expanded="false">
     <div>
       <div class="panel-title">
         <div><div class="eyebrow">Places</div></div>
@@ -139,7 +139,7 @@
     </div>
   </main>
 
-  <aside class="inspector liquid panel-surface" aria-label="Agentic inspector">
+  <aside class="inspector liquid panel-surface panel--collapsed" aria-label="Agentic inspector" aria-expanded="false">
     <section class="inspector-live liquid-soft" aria-label="Live simulation">
       <div class="inspector-rail-title">
         <div class="eyebrow">Live telemetry</div>
@@ -235,7 +235,7 @@
   </aside>
 
 
-  <footer class="command-center liquid-shell panel-surface">
+  <footer class="command-center liquid-shell panel-surface panel--collapsed" aria-expanded="false">
     <label class="command-input"><i class="ti ti-sparkles"></i><input placeholder="Ask, instruct, or run anything…"><i class="ti ti-microphone"></i><i class="ti ti-send"></i></label>
     <div class="dock">
       <div class="dock-tile"><div><i class="ti ti-wand"></i><b>Command</b><span>Execute</span></div></div>

@@ -35,7 +35,8 @@ assertIncludes('src/main.js', '__simulatiaBootstrapStarted', 'boot single-flight
 assertIncludes('src/main.js', 'BOOT_DONE_KEY', 'boot session persistence');
 assertIncludes('src/main.js', 'import.meta.hot', 'HMR boot guard');
 assertIncludes('src/ui/loading.js', 'bootAlreadyComplete', 'noop boot shell when done');
-assertIncludes('src/ui/chrome.js', 'state[p.id] = true', 'panels collapsed on launch');
+assertIncludes('src/ui/chrome.js', 'collapsePanelsAtLaunch', 'panels collapsed on launch');
+assertIncludes('index.html', 'panel--collapsed', 'HTML panels start collapsed');
 assertIncludes('src/simulation/scene.js', 'isRoomContext', 'room pick context');
 assertIncludes('src/simulation/scene.js', 'bootSequenceRan', 'boot tour runs once');
 assertIncludes('index.html', 'class="boot-glass"', 'boot glass without liquid-soft refraction');
