@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Simulatia · Agentic City OS</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
+<style>
+  html{background:#ececec;color-scheme:light}
+  html[data-theme="dark"]{background:#050505;color-scheme:dark}
+  body.sim-booting{margin:0;min-height:100vh;background:#ececec}
+  html[data-theme="dark"] body.sim-booting{background:#050505}
+</style>
+</head>
+<body class="sim-booting">
+<div class="atmosphere" aria-hidden="true"><span class="orb"></span></div>
+<svg class="defs" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="panel-rim" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="7" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <filter id="panel-refraction" x="-18%" y="-18%" width="136%" height="136%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65 0.38" numOctaves="3" seed="11" result="ripples" />
+      <feGaussianBlur in="ripples" stdDeviation=".35" result="softRipples" />
+      <feDisplacementMap in="SourceGraphic" in2="softRipples" scale="4.2" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <filter id="scene-chromatic" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+      <feOffset in="SourceGraphic" dx="0.9" dy="0" result="shiftR" />
+      <feOffset in="SourceGraphic" dx="-0.9" dy="0" result="shiftB" />
+      <feComponentTransfer in="shiftR" result="redOnly">
+        <feFuncR type="identity" />
+        <feFuncG type="discrete" tableValues="0" />
+        <feFuncB type="discrete" tableValues="0" />
+      </feComponentTransfer>
+      <feComponentTransfer in="shiftB" result="blueOnly">
+        <feFuncR type="discrete" tableValues="0" />
+        <feFuncG type="discrete" tableValues="0" />
+        <feFuncB type="identity" />
+      </feComponentTransfer>
+      <feBlend in="redOnly" in2="SourceGraphic" mode="screen" result="blendRB" />
+      <feBlend in="blueOnly" in2="blendRB" mode="screen" />
+    </filter>
+  </defs>
+</svg>
+
+<div id="boot-shell" class="boot-shell" aria-live="polite" aria-busy="true">
+  <div class="boot-glass liquid-soft">
+    <div class="boot-brand">Simulatia</div>
+    <div class="boot-tag">Agentic City OS</div>
+    <p class="boot-status" id="boot-status">Generating world…</p>
+    <div class="boot-progress" aria-hidden="true">
+      <div class="boot-progress-track"><span id="boot-progress-fill" class="boot-progress-fill"></span></div>
+      <span id="boot-progress-pct" class="boot-progress-pct">0%</span>
+    </div>
+    <div id="boot-orbit" class="boot-orbit" aria-hidden="true"></div>
+    <div id="boot-agent-picks" class="boot-agent-picks" hidden></div>
+  </div>
+  <button type="button" id="boot-skip" class="boot-skip">Skip</button>
+</div>
+
+<div class="app-shell" id="app">
+  <header class="topbar liquid-shell panel-surface">
+    <div class="brand">
+      <div class="logo-mark"><img alt="Simulatia logo" src="https://i.ibb.co/NdzzwpTr/Untitled-design-2026-02-09-T162032-994.png" onerror="this.parentElement.classList.add('logo-fallback')"></div>
+      <div><div class="brand-title">Simulatia</div><div class="brand-sub">Agentic City OS</div></div>
+    </div>
+    <div class="crumbs"><i class="ti ti-world"></i><span>Earth</span><span>›</span><span>United States</span><span>›</span><strong id="crumb-name">Austin · Simulatia HQ</strong></div>
+    <div class="status-pill"><span class="status-dot"></span>Operational</div>
+    <div class="metrics">
+      <div class="metric"><span>Health</span><b id="top-health">97%</b></div>
+      <div class="metric"><span>Agents</span><b>142</b></div>
+      <div class="metric"><span>Transit</span><b>24/min</b></div>
+      <div class="metric"><span>Load</span><b>18%</b></div>
+    </div>
+    <button class="small-action" id="auto-toggle" title="Toggle automatic orbit" aria-label="Toggle automatic orbit"><i class="ti ti-rotate-clockwise-2"></i></button>
+    <button class="theme-switch" id="theme-toggle" aria-label="Toggle dark mode"><i class="ti ti-moon" id="theme-icon"></i></button>
+  </header>
+
+  <aside class="sidebar liquid panel-surface">
+    <div>
+      <div class="panel-title">
+        <div><div class="eyebrow">Places</div></div>
+        <div class="icon-lens"><i class="ti ti-sitemap"></i></div>
+      </div>
+      <label class="glass-input search-input"><i class="ti ti-search" aria-hidden="true"></i><input type="search" placeholder="Search…" id="search-field"></label>
+    </div>
+    <div class="tree" id="tree">
+      <div class="nav-row active" data-focus="overview"><span class="icon-lens"><i class="ti ti-globe"></i></span>Regional Overview<span class="state"></span></div>
+      <div class="nav-row" data-focus="hq"><span class="icon-lens"><i class="ti ti-building-skyscraper"></i></span>Austin · Simulatia HQ<span class="state"></span></div>
+      <div class="nav-row warn" data-focus="harbor"><span class="icon-lens"><i class="ti ti-building-bridge-2"></i></span>Harbor City<span class="state"></span></div>
+      <div class="nav-row" data-focus="research"><span class="icon-lens"><i class="ti ti-flask-2"></i></span>Quantum Research Campus<span class="state"></span></div>
+      <div class="nav-row" data-focus="central-hub"><span class="icon-lens"><i class="ti ti-building-bank"></i></span>Central Hub T2<span class="state"></span></div>
+      <div class="nav-row" data-focus="agent-tower"><span class="icon-lens"><i class="ti ti-robot"></i></span>Agent Tower<span class="state"></span></div>
+      <div class="nav-row warn" data-focus="power-grid"><span class="icon-lens"><i class="ti ti-bolt"></i></span>Power Grid<span class="state"></span></div>
+      <div class="nav-row" data-focus="data-vault"><span class="icon-lens"><i class="ti ti-database"></i></span>Data Vault<span class="state"></span></div>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Active agents</div>
+      <div class="agent-list">
+        <div class="agent-card"><span class="icon-lens"><i class="ti ti-brain"></i></span><div><b>Strategy Agent</b><span>Optimizing transit load</span></div><em class="agent-badge">Live</em></div>
+        <div class="agent-card"><span class="icon-lens"><i class="ti ti-flask"></i></span><div><b>Research Agent</b><span>Quantum processing L2</span></div><em class="agent-badge">Live</em></div>
+        <div class="agent-card"><span class="icon-lens"><i class="ti ti-bolt"></i></span><div><b>Ops Agent</b><span>Power balancing</span></div><em class="agent-badge" style="color:var(--orange);background:rgba(255,159,10,.12)">Busy</em></div>
+      </div>
+    </div>
+    <div class="layers">
+      <button class="chip active">Operational</button><button class="chip">Infrastructure</button><button class="chip">Data</button><button class="chip">Risk</button><button class="chip">People</button>
+    </div>
+    <div class="pressure">
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">System Pressure</span><strong style="color:var(--green)">Low</strong></div>
+      <div class="bar"><div class="fill"></div></div>
+    </div>
+  </aside>
+
+  <main class="scene-wrap" id="scene-wrap">
+    <canvas id="cityCanvas"></canvas>
+    <div class="scene-fallback" id="sceneFallback">
+      <div class="fallback-card liquid">
+        <i class="ti ti-cube-3d-sphere"></i>
+        <h2>3D engine unavailable</h2>
+        <p>The app shell loaded, but Three.js could not be fetched. Re-open the file with an internet connection or bundle Three.js locally.</p>
+      </div>
+    </div>
+    <div class="scene-vignette" aria-hidden="true"></div>
+    <div class="scene-ui">
+      <div class="segmented">
+        <button class="active" data-view="3d">3D View</button>
+        <button data-view="map">Map View</button>
+        <button data-view="satellite">Satellite</button>
+      </div>
+      <div class="scene-tools">
+        <button class="small-action" id="reset-camera" title="Reset camera"><i class="ti ti-focus-centered"></i></button>
+        <button class="small-action" id="fly-city" title="City fly-through"><i class="ti ti-route"></i></button>
+      </div>
+      <div id="labels"></div>
+      <div class="scale-hint"><i class="ti ti-hand-move"></i>Drag orbit · Wheel zoom · Click city nodes</div>
+      <div class="transition-toast" id="toast">Transitioning…</div>
+    </div>
+  </main>
+
+  <aside class="inspector liquid panel-surface" aria-label="Agentic inspector">
+    <section class="inspector-live liquid-soft" aria-label="Live simulation">
+      <div class="inspector-rail-title">
+        <div class="eyebrow">Live telemetry</div>
+        <span id="inspector-live-badge">Operational</span>
+      </div>
+      <div class="inspector-sim-status">
+        <h3><span class="pulse-dot"></span>Simulation</h3>
+        <p>Drag · scroll · click nodes</p>
+      </div>
+      <div id="inspector-sim-stats-mount" class="inspector-sim-stats-mount"></div>
+      <div class="inspector-analytics" aria-label="Live charts">
+        <svg width="0" height="0" aria-hidden="true" focusable="false" class="analytics-defs">
+          <defs>
+            <linearGradient id="spark-stroke" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="var(--foreground-2)" stop-opacity="0.35"/>
+              <stop offset="55%" stop-color="var(--foreground)"/>
+              <stop offset="100%" stop-color="var(--foreground-2)" stop-opacity="0.5"/>
+            </linearGradient>
+            <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--foreground)" stop-opacity="0.14"/>
+              <stop offset="100%" stop-color="var(--foreground)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="inspector-analytics-row">
+          <div class="analytics-card">
+            <div class="analytics-card-head"><span>Population flow</span><strong id="analytics-flow-val" class="trend-up">—</strong></div>
+            <svg class="analytics-spark" id="spark-flow" viewBox="0 0 120 36" preserveAspectRatio="none" role="img" aria-label="Population flow trend"></svg>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-card-head"><span>Active vehicles</span><strong id="analytics-vehicles-val">—</strong></div>
+            <svg class="analytics-spark" id="spark-vehicles" viewBox="0 0 120 36" preserveAspectRatio="none" role="img" aria-label="Vehicle count trend"></svg>
+          </div>
+        </div>
+      </div>
+      <div class="inspector-scene-metrics">
+        <div class="mini-card"><div class="mini-title">City motion</div><div class="mini-line"><span>Transit</span><strong class="accent-live">Live</strong></div><div class="mini-line"><span>Transitions</span><strong>On</strong></div><div class="mini-line"><span>Orbit</span><strong id="orbit-state">Auto + Manual</strong></div></div>
+        <div class="mini-card"><div class="mini-title">Focus</div><div class="mini-line"><span>Node</span><strong id="focus-name">Regional Overview</strong></div><div class="mini-line"><span>Zoom</span><strong id="zoom-state">Region</strong></div></div>
+      </div>
+    </section>
+    <div class="inspector-head">
+      <span class="health-badge" id="node-badge">Excellent</span>
+      <h2 id="node-title">Regional Overview</h2>
+      <p id="node-subtitle">Multi-city operational layer · Health 97%</p>
+    </div>
+    <div class="tabs" role="tablist"><button class="active" type="button" data-tab="overview">Overview</button><button type="button" data-tab="agents">Agents</button><button type="button" data-tab="activity">Activity</button><button type="button" data-tab="automate">Automate</button></div>
+    <div class="inspector-body">
+      <p class="copy" id="node-description">Operational overview for the selected node — agents, workflows, and live metrics.</p>
+      <div class="stat-grid">
+        <div class="stat"><span>Systems</span><b id="stat-systems">98%</b></div>
+        <div class="stat"><span>Agents</span><b id="stat-agents">142</b></div>
+        <div class="stat"><span>Workflows</span><b id="stat-workflows">18</b></div>
+        <div class="stat"><span>Transit</span><b id="stat-transit">91%</b></div>
+      </div>
+      <div>
+        <div class="inspector-rail-title"><div class="eyebrow">Active agents</div><span>Live</span></div>
+        <div class="inspector-agent-feed" id="inspector-agent-feed">
+          <button type="button" class="inspector-agent-card" data-agent="strategy"><span class="icon-lens"><i class="ti ti-brain"></i></span><div><b>Strategy Agent</b><span>Optimizing transit load</span></div><em class="agent-badge">Live</em></button>
+          <button type="button" class="inspector-agent-card" data-agent="research"><span class="icon-lens"><i class="ti ti-flask"></i></span><div><b>Research Agent</b><span>Quantum processing L2</span></div><em class="agent-badge">Live</em></button>
+          <button type="button" class="inspector-agent-card" data-agent="ops"><span class="icon-lens"><i class="ti ti-bolt"></i></span><div><b>Ops Agent</b><span>Power balancing</span></div><em class="agent-badge">Busy</em></button>
+        </div>
+      </div>
+      <div>
+        <div class="inspector-rail-title"><div class="eyebrow">Automation</div><span id="auto-queue-count">3 running</span></div>
+        <div class="inspector-automation">
+          <div class="inspector-auto-row"><span>Policy engine</span><strong>Armed</strong><em>Auto</em></div>
+          <div class="inspector-auto-row"><span>Workflow queue</span><strong>37 tasks</strong><em>Live</em></div>
+          <div class="inspector-auto-row"><span>Interventions</span><strong>2 pending</strong><em>Review</em></div>
+          <div class="inspector-auto-row"><span>Last run</span><strong>12s ago</strong><em>OK</em></div>
+        </div>
+      </div>
+      <div class="workflow">
+        <div class="eyebrow">Top workflows</div>
+        <div class="workflow-item"><span>Content Generation</span><em>Running</em></div>
+        <div class="workflow-item"><span>Market Research</span><em>Running</em></div>
+        <div class="workflow-item wait"><span>Power Optimization</span><em>Pending</em></div>
+        <div class="workflow-item"><span>Financial Reporting</span><em>Done</em></div>
+      </div>
+      <div class="inspector-prompt" id="inspector-prompt">
+        <div class="inspector-prompt-head"><i class="ti ti-message-chatbot"></i><span>Agent prompt</span></div>
+        <div class="inspector-chat-log" id="inspector-chat-log" aria-live="polite">
+          <div class="inspector-chat-msg system"><b>System</b>Inspector linked to city simulation. Ask or instruct any agent.</div>
+          <div class="inspector-chat-msg agent"><b>Strategy</b>Transit load is within target. Recommend enabling night routing.</div>
+        </div>
+        <textarea id="inspector-prompt-input" placeholder="Ask an agent, run a workflow, or draft automation…" rows="2"></textarea>
+        <div class="inspector-prompt-actions">
+          <button type="button" id="inspector-prompt-run" class="primary">Send</button>
+          <button type="button" id="inspector-prompt-suggest">Suggest</button>
+          <button type="button" id="inspector-prompt-automate">Automate</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+
+  <footer class="command-center liquid-shell panel-surface">
+    <label class="command-input"><i class="ti ti-sparkles"></i><input placeholder="Ask, instruct, or run anything…"><i class="ti ti-microphone"></i><i class="ti ti-send"></i></label>
+    <div class="dock">
+      <div class="dock-tile"><div><i class="ti ti-wand"></i><b>Command</b><span>Execute</span></div></div>
+      <div class="dock-tile"><div><i class="ti ti-bolt"></i><b>Act</b><span>Trigger</span></div></div>
+      <div class="dock-tile"><div><i class="ti ti-shield-chevron"></i><b>Intervene</b><span>Override</span></div></div>
+      <div class="dock-tile"><div><i class="ti ti-school"></i><b>Train</b><span>Agents</span></div></div>
+      <div class="dock-tile"><div><i class="ti ti-blocks"></i><b>Build</b><span>Configure</span></div></div>
+      <div class="dock-tile"><div><i class="ti ti-clipboard-check"></i><b>Review</b><span>Approve</span></div></div>
+    </div>
+  </footer>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

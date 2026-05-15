@@ -1,0 +1,157 @@
+/**
+ * Boot & runtime performance — scene preview, no white flash, smooth reveal.
+ */
+
+/* Live blurred scene behind preloader */
+body.sim-booting #scene-wrap {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 0 !important;
+  filter: blur(14px) brightness(0.92) saturate(1.05);
+  transform: scale(1.02);
+  transition:
+    filter 1s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 1s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.5s ease;
+}
+
+body.sim-booting.boot-blur-mid #scene-wrap {
+  filter: blur(18px) brightness(0.9) saturate(1.04);
+}
+
+body.sim-booting.boot-scene-live #scene-wrap,
+body.sim-booting.boot-interactive #scene-wrap {
+  filter: blur(8px) brightness(0.96) saturate(1.06);
+  transform: scale(1.01);
+}
+
+body.sim-booting #v8BackgroundCanvas {
+  display: block !important;
+  opacity: 0.45 !important;
+}
+
+html[data-theme='dark'] body.sim-booting #v8BackgroundCanvas {
+  opacity: 0.38 !important;
+}
+
+body.sim-booting #scene-wrap.scene-has-preview {
+  filter: blur(12px) brightness(0.94) saturate(1.05);
+}
+
+/* Boot overlay vignette */
+.boot-shell::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, rgba(0, 0, 0, 0.08) 100%),
+    linear-gradient(180deg, rgba(236, 236, 236, 0.35) 0%, rgba(236, 236, 236, 0.55) 100%);
+}
+
+html[data-theme='dark'] .boot-shell::after {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, rgba(0, 0, 0, 0.35) 100%),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.25) 0%, rgba(5, 5, 5, 0.65) 100%);
+}
+
+/* Progress bar */
+.boot-progress {
+  width: 100%;
+  max-width: 280px;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.boot-progress-track {
+  height: 3px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme='dark'] .boot-progress-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.boot-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--foreground-2), var(--foreground));
+  transition: width 0.12s linear;
+  will-change: width;
+}
+
+.boot-progress-pct {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* Reveal: scene sharpens, UI fades in */
+body.sim-revealing #scene-wrap {
+  filter: blur(4px) brightness(1) saturate(1.02);
+}
+
+body.sim-ready #scene-wrap {
+  filter: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+body.sim-ready #v8BackgroundCanvas {
+  opacity: 0.56 !important;
+}
+
+body.sim-revealing #app,
+body.sim-revealing .app-shell {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.sim-ready:not(.sim-booting) #app,
+body.sim-ready:not(.sim-booting) .app-shell {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none;
+}
+
+/* Canvas performance hints */
+#v4Canvas,
+#v8BackgroundCanvas {
+  touch-action: none;
+}
+
+#scene-wrap.scene-has-preview #v4Canvas {
+  opacity: 1;
+}
+
+/* Reduce boot shell weight on GPU */
+.boot-shell.is-fading {
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.sim-booting #scene-wrap,
+  body.sim-revealing #scene-wrap,
+  body.sim-ready #scene-wrap {
+    filter: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .boot-progress-fill {
+    transition: none;
+  }
+}

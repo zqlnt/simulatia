@@ -1,0 +1,539 @@
+/**
+ * Production polish — final pass (loads last).
+ * Refines motion, spacing, focus, overlap fixes without redesigning UI.
+ */
+
+:root {
+  --motion-fast: 0.2s;
+  --motion-med: 0.34s;
+  --content-inset-x: 12px;
+  --content-inset-y: 10px;
+  --tap-highlight: transparent;
+}
+
+html {
+  overflow-x: clip;
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: clip;
+  -webkit-tap-highlight-color: var(--tap-highlight);
+}
+
+/* ——— Single panel reveal (avoid stacked loading + ui-polish animations) ——— */
+body.sim-ready #app > .topbar,
+body.sim-ready #app > .sidebar,
+body.sim-ready #app > .inspector,
+body.sim-ready #app > .command-center {
+  animation: none !important;
+}
+
+body.sim-ready:not(.sim-booting) .topbar:not(.panel--collapsed),
+body.sim-ready:not(.sim-booting) .sidebar:not(.panel--collapsed),
+body.sim-ready:not(.sim-booting) .inspector:not(.panel--collapsed),
+body.sim-ready:not(.sim-booting) .command-center:not(.panel--collapsed) {
+  animation: none !important;
+}
+
+body.sim-ready:not(.sim-revealing):not(.sim-booting) #app > .topbar:not(.panel--collapsed) {
+  animation: sim-reveal-down 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.04s both !important;
+}
+
+body.sim-ready:not(.sim-revealing):not(.sim-booting) #app > .sidebar:not(.panel--collapsed) {
+  animation: sim-reveal-left 0.52s cubic-bezier(0.32, 0.72, 0, 1) 0.08s both !important;
+}
+
+body.sim-ready:not(.sim-revealing):not(.sim-booting) #app > .inspector:not(.panel--collapsed) {
+  animation: sim-reveal-right 0.52s cubic-bezier(0.32, 0.72, 0, 1) 0.1s both !important;
+}
+
+body.sim-ready:not(.sim-revealing):not(.sim-booting) #app > .command-center:not(.panel--collapsed) {
+  animation: sim-reveal-up 0.52s cubic-bezier(0.32, 0.72, 0, 1) 0.12s both !important;
+}
+
+@keyframes sim-reveal-down {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sim-reveal-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-10px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sim-reveal-right {
+  from {
+    opacity: 0;
+    transform: translate3d(10px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sim-reveal-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ——— Panel performance & collapse polish ——— */
+.topbar.liquid-shell,
+.sidebar.liquid,
+.inspector.liquid,
+.command-center.liquid-shell {
+  contain: layout style;
+  backface-visibility: hidden;
+}
+
+.panel--collapsed > :not(.panel-chrome):not(.panel-mini-bar) {
+  content-visibility: hidden;
+  contain-intrinsic-size: 0 48px;
+}
+
+.panel--transitioning > :not(.panel-chrome):not(.panel-mini-bar) {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.panel--transitioning .panel-mini-bar {
+  opacity: 1;
+}
+
+/* Top bar: flex chrome row — drop legacy left padding hack */
+.topbar.panel-surface:not(.panel--collapsed) {
+  padding-left: 8px !important;
+  padding-right: 12px !important;
+  gap: 10px !important;
+}
+
+/* Expanded panel content insets */
+.sidebar.panel-surface:not(.panel--collapsed) .tree {
+  padding: 4px var(--content-inset-x) var(--content-inset-y);
+}
+
+.inspector.panel-surface:not(.panel--collapsed) .inspector-body {
+  padding: 0 var(--content-inset-x) var(--content-inset-y);
+}
+
+.command-center.liquid-shell:not(.panel--collapsed),
+.command-center.panel-surface:not(.panel--collapsed) {
+  position: fixed !important;
+  top: auto !important;
+  bottom: var(--ui-safe-bottom) !important;
+  left: var(--ui-stage-left) !important;
+  right: auto !important;
+  width: var(--ui-stage) !important;
+  z-index: 42 !important;
+  padding-bottom: var(--content-inset-y) !important;
+}
+
+.command-center.panel-surface:not(.panel--collapsed) .dock,
+.command-center.panel-surface:not(.panel--collapsed) .command-input {
+  margin-left: var(--content-inset-x);
+  margin-right: var(--content-inset-x);
+}
+
+.command-center.panel-surface:not(.panel--collapsed) .command-input {
+  margin-bottom: 2px;
+}
+
+/* Command minimize control — clear of input */
+.command-center.panel-surface:not(.panel--collapsed) > .panel-chrome {
+  top: 10px !important;
+  right: 10px !important;
+  transform: none !important;
+}
+
+/* ——— Interaction consistency ——— */
+button,
+[role='button'],
+.nav-row,
+.dock-tile,
+.segmented button,
+.tabs button,
+.glass-btn,
+.boot-agent-chip,
+.boot-continue,
+.boot-skip {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+.nav-row:focus-visible,
+.dock-tile:focus-visible,
+.segmented button:focus-visible,
+.tabs button:focus-visible,
+.glass-btn:focus-visible,
+.glass-input:focus-within,
+.command-input:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button:disabled,
+.glass-btn:disabled,
+.nav-row[aria-disabled='true'] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none !important;
+  pointer-events: none;
+}
+
+.glass-input input,
+.command-input input,
+.inspector-prompt textarea {
+  transition:
+    color var(--motion-fast) ease,
+    background var(--motion-fast) ease;
+}
+
+.glass-input input::placeholder,
+.command-input input::placeholder,
+.inspector-prompt textarea::placeholder {
+  opacity: 1;
+  transition: color var(--motion-fast) ease;
+}
+
+.glass-input:focus-within,
+.command-input:focus-within {
+  border-color: rgba(59, 108, 255, 0.35);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+html[data-theme='dark'] .glass-input:focus-within,
+html[data-theme='dark'] .command-input:focus-within {
+  border-color: rgba(110, 159, 255, 0.4);
+}
+
+.nav-row,
+.dock-tile,
+.segmented button,
+.tabs button {
+  transition:
+    transform var(--motion-fast) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    background var(--motion-fast) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    opacity var(--motion-fast) ease;
+}
+
+.nav-row:active,
+.dock-tile:active,
+.segmented button:active,
+.tabs button:active {
+  transform: scale(0.98);
+}
+
+.segmented button[aria-pressed='true'],
+.tabs button.active {
+  font-weight: 650;
+}
+
+/* ——— Glass & cards ——— */
+.liquid,
+.liquid-shell,
+.liquid-soft,
+.label-card,
+.mini-card,
+.metric,
+.stat {
+  transition:
+    transform var(--motion-med) var(--ease-spring, cubic-bezier(0.34, 1.15, 0.64, 1)),
+    border-color var(--motion-med) var(--ease-ios, cubic-bezier(0.25, 0.1, 0.25, 1)),
+    box-shadow var(--motion-med) var(--ease-ios, cubic-bezier(0.25, 0.1, 0.25, 1)),
+    background var(--motion-med) var(--ease-ios, cubic-bezier(0.25, 0.1, 0.25, 1)),
+    opacity var(--motion-fast) ease;
+}
+
+.label-card {
+  will-change: transform;
+}
+
+/* ——— Scene HUD — smooth inset when panels move ——— */
+body.sim-ready .segmented,
+body.sim-ready .floating-status,
+body.sim-ready .scale-hint,
+body.sim-ready .scene-tools,
+body.sim-ready #scene-wrap .v4-hint,
+body.sim-ready #scene-wrap .v10-agent-focus,
+body.sim-ready #scene-wrap .v4-depth,
+body.sim-ready #scene-wrap .v11-nav-controls {
+  transition:
+    top 0.48s cubic-bezier(0.32, 0.72, 0, 1),
+    bottom 0.48s cubic-bezier(0.32, 0.72, 0, 1),
+    left 0.48s cubic-bezier(0.32, 0.72, 0, 1),
+    right 0.48s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.48s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.32s ease;
+}
+
+#scene-wrap .v4-hint,
+#scene-wrap .v10-agent-focus {
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s var(--ease-spring, cubic-bezier(0.34, 1.15, 0.64, 1)),
+    bottom 0.48s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+#scene-wrap .v4-hint.show,
+#scene-wrap .v10-agent-focus.show {
+  opacity: 1;
+}
+
+/* Worlds / City / Building / Room / Agent — compact, inset from side panels */
+body.sim-ready #scene-wrap .v4-depth {
+  display: flex !important;
+  max-width: min(
+    calc(var(--ui-stage) - var(--ui-side-left-band) - var(--ui-side-right-band) - 28px),
+    340px
+  ) !important;
+  padding: 4px 5px !important;
+  gap: 3px !important;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.sim-ready #scene-wrap .v4-depth::-webkit-scrollbar {
+  display: none;
+}
+
+body.sim-ready #scene-wrap .v4-depth button {
+  padding: 4px 6px !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  line-height: 1.1 !important;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+body.sim-ready:not(.panel-left-collapsed) #scene-wrap .v4-depth,
+body.sim-ready:not(.panel-right-collapsed) #scene-wrap .v4-depth {
+  max-width: min(
+    calc(var(--ui-stage) - var(--ui-side-left-band) - var(--ui-side-right-band) - 36px),
+    300px
+  ) !important;
+}
+
+/* ——— Boot & reveal ——— */
+.boot-progress-fill {
+  transition: width 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.boot-glass,
+.boot-skip,
+.boot-agent-chip,
+.boot-continue {
+  transition:
+    transform 0.28s var(--ease-spring, cubic-bezier(0.34, 1.15, 0.64, 1)),
+    opacity 0.28s ease,
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.28s ease;
+}
+
+.boot-agent-chip:active,
+.boot-continue:active,
+.boot-skip:active {
+  transform: scale(0.98);
+}
+
+body.sim-revealing #scene-wrap {
+  transition:
+    filter 0.7s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.7s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.4s ease;
+}
+
+body.sim-ready:not(.sim-booting) #app,
+body.sim-ready:not(.sim-booting) .app-shell {
+  transition: opacity 0.55s cubic-bezier(0.32, 0.72, 0, 1), visibility 0.55s step-end;
+}
+
+/* ——— Scrollbars inside panels ——— */
+.sidebar .tree,
+.inspector-body,
+.inspector-prompt textarea {
+  scrollbar-gutter: stable;
+}
+
+.sidebar .tree::-webkit-scrollbar-thumb,
+.inspector-body::-webkit-scrollbar-thumb {
+  min-height: 28px;
+}
+
+/* ——— Inspector / command spacing ——— */
+.inspector-head {
+  flex-shrink: 0;
+}
+
+.inspector-prompt textarea {
+  resize: vertical;
+  min-height: 2.6em;
+  max-height: 8em;
+}
+
+.inspector-live {
+  flex-shrink: 0;
+}
+
+/* ——— Tablet / mobile touch & overflow ——— */
+@media (max-width: 1100px) {
+  :root {
+    --content-inset-x: 10px;
+  }
+
+  .inspector.liquid:not(.panel--collapsed) {
+    max-height: min(44dvh, 400px) !important;
+  }
+
+  body.sim-ready #scene-wrap .v4-depth {
+    max-width: min(
+      calc(100vw - var(--ui-side-left-band) - var(--ui-side-right-band) - 52px),
+      280px
+    ) !important;
+  }
+
+  body.sim-ready #scene-wrap .v4-depth button {
+    padding: 3px 5px !important;
+    font-size: 9.5px !important;
+  }
+
+  /* Collapsed side rails — bottom chips, not full-height stretch */
+  .sidebar.panel--collapsed,
+  .inspector.panel--collapsed {
+    top: auto !important;
+    bottom: var(--ui-inset-bottom) !important;
+    height: max-content !important;
+    max-height: 108px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    translate: none !important;
+    transform: none !important;
+  }
+
+  .sidebar.panel--collapsed {
+    max-height: min(108px, 82px) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar.panel--collapsed .panel-mini-btn,
+  .command-center.panel--collapsed .panel-mini-btn {
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  .sidebar.panel--collapsed .panel-mini-btn,
+  .inspector.panel--collapsed .panel-mini-btn {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+  }
+
+  .sidebar.panel--collapsed,
+  .inspector.panel--collapsed {
+    top: auto !important;
+    bottom: calc(var(--ui-safe-bottom) + var(--ui-command-band) + 8px) !important;
+    height: max-content !important;
+    max-height: 108px !important;
+    translate: none !important;
+    transform: none !important;
+  }
+
+  .sidebar.panel--collapsed {
+    left: calc(var(--ui-stage-left) + 6px) !important;
+    right: auto !important;
+  }
+
+  .inspector.panel--collapsed {
+    right: calc(50% - var(--ui-stage) / 2 + 6px) !important;
+    left: auto !important;
+  }
+
+  body.sim-ready #scene-wrap .v4-depth {
+    max-width: min(calc(100vw - 96px), 260px) !important;
+    bottom: calc(var(--ui-safe-bottom) + var(--ui-edge-gap) + var(--ui-chip-h) + 96px) !important;
+  }
+
+  .topbar.panel--collapsed {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .command-center.panel--collapsed {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+  }
+
+  .command-center.panel--collapsed .panel-mini-btn--prompt-only {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .command-center.panel--collapsed .panel-mini-btn--prompt-only i {
+    font-size: 17px;
+  }
+
+  .inspector.liquid:not(.panel--collapsed) .inspector-body {
+    padding-bottom: calc(var(--content-inset-y) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .scale-hint {
+    font-size: 10px;
+    padding: 8px 12px;
+  }
+}
+
+/* ——— Reduced motion ——— */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  body.sim-ready:not(.sim-revealing):not(.sim-booting) #app > * {
+    animation: none !important;
+  }
+
+  .panel--transitioning > :not(.panel-chrome):not(.panel-mini-bar) {
+    opacity: 1;
+    transition: none;
+  }
+
+  .boot-progress-fill {
+    transition: none;
+  }
+
+  .label-card {
+    will-change: auto;
+  }
+}

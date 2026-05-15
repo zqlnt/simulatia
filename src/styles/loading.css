@@ -1,0 +1,407 @@
+/* Boot: centered glass card over blurred full-screen scene */
+
+body.sim-booting {
+  overflow: hidden;
+  background: #ececec;
+}
+
+html[data-theme='dark'] body.sim-booting {
+  background: #050505;
+}
+
+body.sim-booting #scene-wrap {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  filter: blur(0px) brightness(1) saturate(1.02);
+  transition: filter 1.2s var(--ease-ios);
+}
+
+body.sim-booting.boot-blur-mid #scene-wrap {
+  filter: blur(6px) brightness(1) saturate(1.04);
+}
+
+body.sim-booting.boot-blur-heavy #scene-wrap {
+  filter: blur(12px) brightness(1) saturate(1.05);
+}
+
+body.sim-booting.boot-interactive #scene-wrap {
+  filter: blur(2px) brightness(1) saturate(1.05);
+  pointer-events: auto !important;
+  z-index: 45 !important;
+}
+
+body.sim-booting.boot-interactive #cityCanvas {
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+body.sim-booting #app,
+body.sim-booting .app-shell {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.sim-booting #app > *,
+body.sim-booting .app-shell > * {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.sim-booting .segmented,
+body.sim-booting .scene-tools,
+body.sim-booting .floating-status,
+body.sim-booting .scale-hint {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.sim-ready #scene-wrap {
+  filter: none !important;
+}
+
+body.sim-ready #app {
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 0.65s var(--ease-ios);
+}
+
+body.sim-ready .topbar,
+body.sim-ready .sidebar,
+body.sim-ready .inspector,
+body.sim-ready .command-center {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.55s var(--ease-ios), transform 0.55s var(--ease-spring);
+}
+
+body.sim-ready:not(.sim-booting) .topbar:not(.panel--collapsed) {
+  animation: panel-enter 0.6s var(--ease-ios) 0.05s both;
+}
+
+body.sim-ready:not(.sim-booting) .sidebar:not(.panel--collapsed) {
+  animation: panel-enter-left 0.6s var(--ease-ios) 0.12s both;
+}
+
+body.sim-ready:not(.sim-booting) .inspector:not(.panel--collapsed) {
+  animation: panel-enter-right 0.6s var(--ease-ios) 0.12s both;
+}
+
+body.sim-ready:not(.sim-booting) .command-center:not(.panel--collapsed) {
+  animation: panel-enter-bottom 0.6s var(--ease-ios) 0.18s both;
+}
+
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes panel-enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panel-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panel-enter-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.boot-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+  background: rgba(244, 244, 245, 0.12);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition:
+    opacity 0.65s cubic-bezier(0.25, 0.1, 0.25, 1),
+    visibility 0.65s cubic-bezier(0.25, 0.1, 0.25, 1),
+    background 0.65s ease;
+}
+
+html[data-theme='dark'] .boot-shell {
+  background: rgba(5, 5, 5, 0.2);
+}
+
+.boot-shell.is-fading {
+  pointer-events: none !important;
+  background: transparent !important;
+}
+
+.boot-shell.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-shell.is-fading .boot-glass,
+.boot-shell.is-done .boot-glass {
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  pointer-events: none;
+}
+
+.boot-glass {
+  pointer-events: auto;
+  width: min(380px, calc(100vw - 48px));
+  transition:
+    opacity 0.55s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+  padding: 28px 26px 24px;
+  border-radius: 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.22) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: 0 8px 32px rgba(20, 30, 50, 0.08) !important;
+  backdrop-filter: blur(20px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.35) !important;
+}
+
+html[data-theme='dark'] .boot-glass {
+  background: rgba(12, 12, 12, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.2) !important;
+}
+
+.boot-glass::before,
+.boot-glass::after {
+  opacity: 0.2 !important;
+}
+
+.boot-brand {
+  font-size: 20px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+}
+
+.boot-tag {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-family: inherit;
+}
+
+.boot-status {
+  margin-top: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground-2);
+  font-family: inherit;
+}
+
+.boot-orbit {
+  margin-top: 16px;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.boot-orbit-canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.boot-orbit {
+  position: relative;
+}
+
+.boot-orbit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  top: 0;
+  height: 168px;
+  border-radius: 20px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 48%,
+    rgba(59, 108, 255, 0.06) 0%,
+    transparent 62%
+  );
+  opacity: 0.9;
+}
+
+.boot-orbit-stages {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 10px;
+  width: 100%;
+}
+
+.boot-orbit-stage {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+
+.boot-orbit-stage.is-active {
+  color: var(--foreground-2);
+}
+
+.boot-orbit-stage.is-current {
+  color: var(--foreground);
+  border-color: var(--hairline);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+html[data-theme='dark'] .boot-orbit-stage.is-current {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.boot-terminal {
+  display: none !important;
+}
+
+.boot-agent-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+}
+
+.boot-hint {
+  width: 100%;
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.boot-agent-picks[hidden] {
+  display: none;
+}
+
+.boot-agent-chip,
+.boot-continue {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--foreground);
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  flex: 0 0 auto;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.boot-agent-chip i,
+.boot-continue i {
+  font-size: 15px;
+  color: var(--foreground-2);
+}
+
+.boot-agent-chip:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--hairline);
+  color: var(--foreground);
+}
+
+html[data-theme='dark'] .boot-agent-chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.boot-continue {
+  width: 100%;
+  margin-top: 4px;
+  background: var(--foreground);
+  border-color: transparent;
+  color: var(--background);
+}
+
+.boot-continue:hover {
+  opacity: 0.92;
+  color: var(--background);
+}
+
+html[data-theme='dark'] .boot-continue {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0a0a0a;
+}
+
+.boot-skip {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 55;
+  pointer-events: auto;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.boot-skip:hover {
+  color: var(--foreground);
+}

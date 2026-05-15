@@ -1,0 +1,247 @@
+/* Panel chrome — anchored rails + minimize/expand motion */
+
+:root {
+  --ui-rail-width: var(--ui-chip-size, 26px);
+}
+
+/* ——— Traffic lights (top-left, all panels) ——— */
+.panel-traffic {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.traffic-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+.traffic-dot--close {
+  background: #ff5f57;
+  cursor: pointer;
+}
+
+.traffic-dot--min {
+  background: #febc2e;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.traffic-dot--expand {
+  background: #28c840;
+  opacity: 0.22;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.traffic-dot--close:hover,
+.traffic-dot--expand:hover {
+  transform: scale(1.12);
+}
+
+.panel-traffic:not(.is-collapsed) .traffic-dot--close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel-traffic:not(.is-collapsed) .traffic-dot--expand {
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.panel-traffic.is-collapsed .traffic-dot--close {
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.panel-traffic.is-collapsed .traffic-dot--expand {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ——— Panel motion ——— */
+.topbar.liquid-shell,
+.sidebar.liquid,
+.inspector.liquid,
+.command-center.liquid-shell {
+  transition:
+    width var(--panel-dur) var(--panel-ease),
+    min-width var(--panel-dur) var(--panel-ease),
+    max-width var(--panel-dur) var(--panel-ease),
+    height var(--panel-dur) var(--panel-ease),
+    min-height var(--panel-dur) var(--panel-ease),
+    padding var(--panel-dur) var(--panel-ease),
+    top var(--panel-dur) var(--panel-ease),
+    bottom var(--panel-dur) var(--panel-ease),
+    left var(--panel-dur) var(--panel-ease),
+    right var(--panel-dur) var(--panel-ease),
+    transform var(--panel-dur) var(--panel-ease),
+    border-radius var(--panel-dur) var(--panel-ease);
+  will-change: width, height, transform;
+}
+
+.topbar.liquid-shell {
+  transform-origin: top center;
+}
+
+.command-center.liquid-shell {
+  transform-origin: bottom center;
+}
+
+.sidebar.liquid {
+  transform-origin: left center;
+}
+
+.inspector.liquid {
+  transform-origin: right center;
+}
+
+.panel-surface {
+  position: relative;
+}
+
+.panel-surface:not(.panel--collapsed) {
+  padding-top: 10px !important;
+}
+
+.panel--collapsed {
+  isolation: isolate;
+}
+
+.panel--transitioning {
+  pointer-events: none;
+}
+
+/* ——— Mini bars ——— */
+.panel-mini-bar {
+  display: none;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel--collapsed .panel-mini-bar {
+  display: flex;
+  margin: 0;
+  padding: 16px 4px 4px;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.panel-mini-bar--row {
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.panel-mini-bar--col {
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.panel-mini-btn {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 12px;
+  border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--foreground-2);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+html[data-theme='dark'] .panel-mini-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.panel-mini-btn:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.panel-mini-btn.active {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.panel-mini-btn.warn {
+  color: var(--orange);
+}
+
+.panel-mini-brand .logo-mark {
+  width: 20px;
+  height: 20px;
+}
+
+.panel--collapsed .panel-mini-bar {
+  padding: 14px 3px 3px;
+  gap: 3px;
+}
+
+/* Collapsed panel positions — panel-final-polish.css */
+
+.command-center.panel--collapsed .dock {
+  display: none !important;
+}
+
+.panel--collapsed .inspector-live,
+.sidebar.panel--collapsed > :not(.panel-chrome):not(.panel-mini-bar),
+.inspector.panel--collapsed > :not(.panel-chrome):not(.panel-mini-bar),
+.topbar.panel--collapsed > :not(.panel-chrome):not(.panel-mini-bar),
+.command-center.panel--collapsed > :not(.panel-chrome):not(.panel-mini-bar) {
+  display: none !important;
+}
+
+.panel-toggle,
+.panel-dock {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --ui-rail-width: 40px;
+  }
+
+  .panel-mini-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar.liquid-shell,
+  .sidebar.liquid,
+  .inspector.liquid,
+  .command-center.liquid-shell {
+    transition-duration: 0.01ms !important;
+  }
+}

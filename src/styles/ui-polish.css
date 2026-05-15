@@ -1,0 +1,410 @@
+/**
+ * Final UI polish — layout, panel chrome, glass, motion (loads last).
+ */
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --panel-chrome: 32px;
+  --z-scene: 1;
+  --z-scene-ui: 6;
+  --z-panel: 40;
+  --z-panel-bar: 42;
+  --z-panel-chip: 44;
+  --z-boot: 50;
+  --ui-chip-size: 26px;
+  --ui-chip-radius: 10px;
+  --panel-dur: 0.42s;
+  --panel-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ——— Z-index stack ——— */
+#scene-wrap {
+  z-index: var(--z-scene) !important;
+}
+
+.scene-ui {
+  z-index: var(--z-scene-ui) !important;
+}
+
+.sidebar.liquid,
+.inspector.liquid {
+  z-index: var(--z-panel) !important;
+}
+
+.topbar.liquid-shell,
+.command-center.liquid-shell {
+  z-index: var(--z-panel-bar) !important;
+}
+
+.topbar.panel--collapsed,
+.command-center.panel--collapsed,
+.sidebar.panel--collapsed,
+.inspector.panel--collapsed {
+  z-index: var(--z-panel-chip) !important;
+}
+
+.boot-shell {
+  z-index: var(--z-boot) !important;
+}
+
+/* ——— Shell insets (collapsed = compact chips, not full rails) ——— */
+/* Shell inset bands — viewport.css */
+
+/* ——— Subtle panel controls (2-dot, frosted pill) ——— */
+.panel-traffic {
+  top: var(--space-2);
+  left: var(--space-2);
+  gap: 3px;
+  padding: 3px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--hairline);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme='dark'] .panel-traffic {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.traffic-dot {
+  width: 7px;
+  height: 7px;
+  opacity: 0.42;
+  background: var(--muted) !important;
+  box-shadow: none;
+  transition:
+    opacity 0.2s var(--panel-ease),
+    transform 0.2s var(--panel-ease),
+    background 0.2s var(--panel-ease);
+}
+
+.traffic-dot--min {
+  display: none !important;
+}
+
+.traffic-dot--close:hover {
+  opacity: 1;
+  background: #e85d55 !important;
+  transform: scale(1.08);
+}
+
+.traffic-dot--expand:hover {
+  opacity: 1;
+  background: #3cb85c !important;
+  transform: scale(1.08);
+}
+
+.panel-traffic:not(.is-collapsed) .traffic-dot--close {
+  opacity: 0.55;
+  background: rgba(120, 120, 128, 0.9) !important;
+}
+
+.panel-traffic:not(.is-collapsed) .traffic-dot--close:hover {
+  background: #e85d55 !important;
+  opacity: 1;
+}
+
+.panel-traffic.is-collapsed .traffic-dot--expand {
+  opacity: 0.85;
+  background: rgba(120, 120, 128, 0.95) !important;
+}
+
+.panel-traffic.is-collapsed .traffic-dot--expand:hover {
+  background: #3cb85c !important;
+  opacity: 1;
+}
+
+.traffic-dot:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ——— Content clearance for chrome ——— */
+.panel-surface:not(.panel--collapsed) {
+  padding-top: var(--space-2) !important;
+}
+
+.topbar.panel-surface:not(.panel--collapsed) {
+  padding-left: calc(var(--panel-chrome) + var(--space-2)) !important;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 52px;
+}
+
+/* panel chrome clearance — panel-final-polish.css */
+
+.sidebar .panel-title,
+.inspector-head {
+  padding-top: var(--space-1);
+}
+
+.inspector-live {
+  margin: var(--space-2) var(--space-2) 0;
+}
+
+/* ——— Collapsed chips (compact, no overlap) ——— */
+.panel--collapsed {
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.panel--collapsed .panel-mini-bar {
+  padding: 12px 2px 2px;
+  gap: 2px;
+}
+
+.panel-mini-btn {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  font-size: 11px !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+.panel-mini-brand .logo-mark {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Collapsed topbar chip — panel-final-polish.css */
+
+/* command collapsed chip — panel-final-polish.css */
+
+/* Collapsed side rails — see panel-final-polish.css */
+
+/* Collapsed rail position — panel-final-polish.css */
+
+/* ——— Scene HUD: stay inside safe frame ——— */
+/* scene HUD top — panel-final-polish.css */
+
+.sim-ready .scene-tools .small-action {
+  width: 34px;
+  height: 34px;
+}
+
+/* ——— Glass refinement ——— */
+.liquid,
+.liquid-shell,
+.liquid-soft {
+  backdrop-filter: blur(var(--blur-panel)) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(var(--blur-panel)) saturate(1.12) !important;
+}
+
+.liquid:hover,
+.liquid-shell:hover {
+  border-color: rgba(255, 255, 255, 0.62);
+}
+
+html[data-theme='dark'] .liquid:hover,
+html[data-theme='dark'] .liquid-shell:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ——— Panel motion (only while transitioning) ——— */
+.topbar.liquid-shell,
+.sidebar.liquid,
+.inspector.liquid,
+.command-center.liquid-shell {
+  transition:
+    width var(--panel-dur, 0.52s) var(--panel-spring, cubic-bezier(0.34, 1.16, 0.64, 1)),
+    min-width var(--panel-dur, 0.52s) var(--panel-spring, cubic-bezier(0.34, 1.16, 0.64, 1)),
+    max-width var(--panel-dur, 0.52s) var(--panel-spring, cubic-bezier(0.34, 1.16, 0.64, 1)),
+    height var(--panel-dur, 0.52s) var(--panel-spring, cubic-bezier(0.34, 1.16, 0.64, 1)),
+    min-height var(--panel-dur, 0.52s) var(--panel-spring, cubic-bezier(0.34, 1.16, 0.64, 1)),
+    padding var(--panel-dur, 0.52s) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    top var(--panel-dur, 0.52s) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    bottom var(--panel-dur, 0.52s) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    left var(--panel-dur, 0.52s) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    right var(--panel-dur, 0.52s) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    transform var(--panel-dur, 0.52s) var(--panel-spring, cubic-bezier(0.34, 1.16, 0.64, 1)),
+    border-radius var(--panel-dur, 0.52s) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    opacity calc(var(--panel-dur, 0.52s) * 0.85) var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1)),
+    box-shadow 0.32s var(--panel-ease, cubic-bezier(0.32, 0.72, 0, 1));
+  will-change: auto;
+}
+
+.panel--transitioning {
+  will-change: width, height, top, bottom, left, right;
+  pointer-events: none;
+}
+
+.panel-mini-btn {
+  transition:
+    transform 0.22s var(--panel-ease),
+    background 0.22s var(--panel-ease),
+    color 0.22s var(--panel-ease),
+    border-color 0.22s var(--panel-ease);
+}
+
+.panel-mini-btn:hover {
+  transform: translateY(-1px);
+}
+
+.panel-mini-btn:active {
+  transform: scale(0.94);
+}
+
+/* ——— Inspector scroll & hierarchy ——— */
+.inspector.liquid:not(.panel--collapsed) {
+  overflow: hidden;
+}
+
+.inspector-body {
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+.inspector-prompt textarea:focus {
+  outline: none;
+  border-color: var(--primary-soft);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* ——— Buttons & inputs consistency ——— */
+.small-action,
+.theme-switch,
+.glass-btn {
+  transition: transform 0.22s var(--panel-ease), background 0.22s var(--panel-ease);
+}
+
+.small-action:hover,
+.theme-switch:hover {
+  transform: translateY(-1px);
+}
+
+.small-action:focus-visible,
+.theme-switch:focus-visible,
+.panel-mini-btn:focus-visible,
+.boot-skip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ——— App shell fade-in ——— */
+body.sim-ready #app > .topbar,
+body.sim-ready #app > .sidebar,
+body.sim-ready #app > .inspector,
+body.sim-ready #app > .command-center {
+  animation: polish-panel-in 0.55s var(--panel-ease) both;
+}
+
+body.sim-ready #app > .sidebar {
+  animation-delay: 0.06s;
+}
+
+body.sim-ready #app > .inspector {
+  animation-delay: 0.08s;
+}
+
+body.sim-ready #app > .command-center {
+  animation-delay: 0.1s;
+}
+
+@keyframes polish-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ——— Tablet / mobile ——— */
+@media (max-width: 1100px) {
+  body.sim-ready:not(.panel-right-collapsed) {
+    --ui-side-right-band: min(300px, 34vw);
+  }
+
+  body.sim-ready:not(.panel-left-collapsed) {
+    --ui-side-left-band: min(260px, 30vw);
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar.panel-surface:not(.panel--collapsed) {
+    padding-left: calc(var(--panel-chrome) + 4px) !important;
+    flex-wrap: wrap;
+    min-height: 48px;
+  }
+
+  .topbar .crumbs,
+  .topbar .status-pill,
+  .topbar .metrics {
+    display: none;
+  }
+
+  .inspector.liquid:not(.panel--collapsed) {
+    bottom: calc(var(--ui-safe-bottom) + var(--space-2)) !important;
+    max-height: min(42dvh, 380px) !important;
+    border-radius: var(--panel-radius) !important;
+  }
+
+  .command-center.liquid-shell:not(.panel--collapsed) {
+    top: auto !important;
+    bottom: var(--ui-safe-bottom) !important;
+    left: var(--ui-stage-left) !important;
+    width: var(--ui-stage) !important;
+    display: grid !important;
+    z-index: 42 !important;
+    max-height: min(28dvh, 220px) !important;
+    border-radius: var(--panel-radius) !important;
+  }
+
+  .command-center.panel--collapsed {
+    display: flex !important;
+    bottom: calc(var(--ui-safe-bottom) + var(--ui-edge-gap)) !important;
+    left: 50% !important;
+    translate: -50% 0 !important;
+    z-index: 45 !important;
+  }
+
+  .sidebar.panel--collapsed,
+  .inspector.panel--collapsed {
+    top: auto !important;
+    bottom: calc(var(--ui-safe-bottom) + var(--ui-command-band) + 8px) !important;
+    height: max-content !important;
+    max-height: 108px !important;
+    translate: none !important;
+    transform: none !important;
+  }
+
+  .sidebar.panel--collapsed {
+    left: calc(var(--ui-stage-left) + 6px) !important;
+    right: auto !important;
+  }
+
+  .inspector.panel--collapsed {
+    right: calc(50% - var(--ui-stage) / 2 + 6px) !important;
+    left: auto !important;
+  }
+
+  .sim-ready .segmented {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar.liquid-shell,
+  .sidebar.liquid,
+  .inspector.liquid,
+  .command-center.liquid-shell,
+  .panel-mini-btn,
+  .small-action,
+  .theme-switch {
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+  }
+
+  body.sim-ready #app > * {
+    animation: none !important;
+  }
+}

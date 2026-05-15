@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+.extracted-sim.js
+src/simulation/_engineBody.js

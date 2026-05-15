@@ -1,0 +1,196 @@
+/**
+ * Three.js viewport — white void, tilt-shift edge blur, subtle chromatic aberration.
+ */
+
+#scene-wrap {
+  background: #ffffff !important;
+}
+
+#v4Canvas {
+  filter: url(#scene-chromatic);
+}
+
+#scene-wrap.room-mode #v4Canvas,
+#scene-wrap.agent-solo-mode #v4Canvas,
+#v4Canvas.transitioning {
+  filter: none;
+}
+
+/* Tilt-shift bands — blur + fade to white at top/bottom */
+.scene-tilt-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 34%;
+  pointer-events: none;
+  z-index: 2;
+  backdrop-filter: blur(14px) saturate(1.02);
+  -webkit-backdrop-filter: blur(14px) saturate(1.02);
+}
+
+.scene-tilt-band--top {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.28) 42%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 100%);
+}
+
+.scene-tilt-band--bottom {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.32) 44%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 100%);
+}
+
+#scene-wrap.agent-solo-mode .scene-tilt-band {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Interior — soft tilt-shift: floor edges dissolve into white void */
+#scene-wrap.room-mode .scene-tilt-band {
+  opacity: 1;
+  visibility: visible;
+  height: 40%;
+  backdrop-filter: blur(22px) saturate(1.01);
+  -webkit-backdrop-filter: blur(22px) saturate(1.01);
+}
+
+#scene-wrap.room-mode .scene-tilt-band--top {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(255, 255, 255, 0.55) 35%,
+    rgba(255, 255, 255, 0.12) 68%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.7) 32%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.7) 32%, transparent 100%);
+}
+
+#scene-wrap.room-mode .scene-tilt-band--bottom {
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(255, 255, 255, 0.58) 38%,
+    rgba(255, 255, 255, 0.14) 70%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.72) 34%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.72) 34%, transparent 100%);
+}
+
+#scene-wrap.room-mode .scene-vignette {
+  opacity: 0.72 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, transparent 18%, transparent 82%, rgba(255, 255, 255, 0.5) 100%),
+    radial-gradient(ellipse 76% 64% at 50% 48%, transparent 28%, rgba(255, 255, 255, 0.35) 100%) !important;
+}
+
+#scene-wrap.room-mode .scene-wrap::after,
+#scene-wrap.room-mode::after {
+  opacity: 0.55 !important;
+  background: radial-gradient(
+    ellipse 70% 58% at 50% 46%,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.18) 55%,
+    rgba(255, 255, 255, 0.62) 100%
+  ) !important;
+  backdrop-filter: blur(16px) saturate(1.02) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.02) !important;
+}
+
+html[data-theme='dark'] #scene-wrap.room-mode .scene-tilt-band--top {
+  background: linear-gradient(to bottom, rgba(5, 5, 5, 0.88) 0%, transparent 100%);
+}
+
+html[data-theme='dark'] #scene-wrap.room-mode .scene-tilt-band--bottom {
+  background: linear-gradient(to top, rgba(5, 5, 5, 0.9) 0%, transparent 100%);
+}
+
+.scene-vignette {
+  opacity: 0.45 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.28)),
+    radial-gradient(ellipse 88% 72% at 50% 48%, transparent 42%, rgba(255, 255, 255, 0.22) 100%) !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Center sharp strip — white radial falloff (replaces blue edge wash) */
+.scene-wrap::after {
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 46%,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.14) 62%,
+    rgba(255, 255, 255, 0.42) 100%
+  ) !important;
+  -webkit-mask-image: radial-gradient(
+    ellipse 68% 54% at 50% 46%,
+    transparent 52%,
+    rgba(0, 0, 0, 0.35) 72%,
+    #000 100%
+  ) !important;
+  mask-image: radial-gradient(
+    ellipse 68% 54% at 50% 46%,
+    transparent 52%,
+    rgba(0, 0, 0, 0.35) 72%,
+    #000 100%
+  ) !important;
+  backdrop-filter: blur(10px) saturate(1.04) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.04) !important;
+  box-shadow: inset 0 0 48px rgba(255, 255, 255, 0.35) !important;
+}
+
+html[data-theme='dark'] #scene-wrap {
+  background: #050505 !important;
+}
+
+html[data-theme='dark'] #v4Canvas {
+  filter: none;
+}
+
+html[data-theme='dark'] .scene-tilt-band--top {
+  background: linear-gradient(to bottom, rgba(5, 5, 5, 0.65) 0%, transparent 100%);
+}
+
+html[data-theme='dark'] .scene-tilt-band--bottom {
+  background: linear-gradient(to top, rgba(5, 5, 5, 0.7) 0%, transparent 100%);
+}
+
+html[data-theme='dark'] .scene-wrap::after {
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 46%,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.22) 62%,
+    rgba(0, 0, 0, 0.48) 100%
+  ) !important;
+}
+
+@media (max-width: 760px) {
+  .scene-tilt-band {
+    height: 28%;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  #v4Canvas {
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-tilt-band {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}

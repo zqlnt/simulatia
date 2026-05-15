@@ -1,0 +1,300 @@
+/* Full-screen scene + centered glass UI stage */
+
+:root {
+  --ui-stage: min(1180px, calc(100vw - 80px));
+  --ui-stage-left: calc(50% - var(--ui-stage) / 2);
+  --ui-safe-top: max(12px, env(safe-area-inset-top));
+  --ui-safe-bottom: max(12px, env(safe-area-inset-bottom));
+  --ui-chip-h: 50px;
+  --ui-chip-radius: 14px;
+  --ui-rail-width: 40px;
+  --ui-edge-gap: 10px;
+  --ui-stack-gap: 10px;
+  --ui-topbar-band-expanded: calc(var(--panel-chrome-h, 32px) + 50px);
+  --ui-topbar-band-collapsed: calc(42px + var(--ui-edge-gap));
+  --ui-topbar-band: var(--ui-topbar-band-expanded);
+  --ui-scene-hud-offset: 8px;
+  --ui-command-band: 96px;
+  --ui-side-left-band: 0px;
+  --ui-side-right-band: 0px;
+  --ui-inset-top: calc(var(--ui-safe-top) + var(--ui-topbar-band) + var(--ui-stack-gap) + var(--ui-scene-hud-offset));
+  --ui-inset-bottom: calc(var(--ui-safe-bottom) + var(--ui-command-band) + var(--ui-stack-gap));
+  --ui-rail-slot-h: calc(100dvh - var(--ui-inset-top) - var(--ui-inset-bottom));
+}
+
+body.panel-top-collapsed {
+  --ui-topbar-band: var(--ui-topbar-band-collapsed);
+  --ui-scene-hud-offset: 4px;
+}
+
+body.panel-bottom-collapsed {
+  --ui-command-band: calc(var(--ui-chip-h) + var(--ui-edge-gap));
+}
+
+body.panel-left-collapsed {
+  --ui-side-left-band: var(--ui-rail-width);
+}
+
+body.panel-right-collapsed {
+  --ui-side-right-band: var(--ui-rail-width);
+}
+
+body.sim-ready:not(.panel-left-collapsed) {
+  --ui-side-left-band: min(196px, calc(var(--ui-stage) * 0.165 + 10px));
+}
+
+body.sim-ready:not(.panel-right-collapsed) {
+  --ui-side-right-band: min(224px, calc(var(--ui-stage) * 0.185 + 10px));
+}
+
+body {
+  background: var(--background) !important;
+}
+
+html[data-theme='dark'] body.sim-booting {
+  background: #050505;
+}
+
+.atmosphere {
+  display: none;
+}
+
+/* v8 mirror canvas — visibility during boot in performance-boot.css */
+
+#scene-wrap {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  height: 100lvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  overflow: hidden !important;
+}
+
+#scene-wrap::before,
+#scene-wrap::after {
+  display: none !important;
+}
+
+#cityCanvas,
+#v4Canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.scene-vignette {
+  opacity: 0.32 !important;
+  pointer-events: none;
+}
+
+.scene-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  max-width: var(--ui-stage);
+  left: 50% !important;
+  translate: -50% 0;
+  width: var(--ui-stage);
+}
+
+.scene-ui > * {
+  pointer-events: auto;
+}
+
+/* Centered scene HUD — inset from panel rails */
+.segmented {
+  left: 50% !important;
+  top: var(--ui-inset-top) !important;
+  translate: -50% 0 !important;
+  transform: none !important;
+  max-width: calc(var(--ui-stage) - var(--ui-side-left-band) - var(--ui-side-right-band) - 16px) !important;
+}
+
+.floating-status {
+  left: 50% !important;
+  right: auto !important;
+  top: calc(var(--ui-inset-top) + 46px) !important;
+  translate: -50% 0 !important;
+  width: min(300px, calc(100% - var(--ui-side-left-band) - var(--ui-side-right-band) - 24px)) !important;
+  text-align: center;
+}
+
+.floating-status h3,
+.floating-status p {
+  text-align: center;
+}
+
+.mini-stack {
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: var(--ui-inset-bottom) !important;
+  translate: -50% 0 !important;
+  width: min(280px, calc(100% - var(--ui-side-left-band) - var(--ui-side-right-band) - 24px)) !important;
+}
+
+.scene-tools {
+  right: calc(50% - var(--ui-stage) / 2 + var(--ui-side-right-band) + 8px) !important;
+  left: auto !important;
+  top: var(--ui-inset-top) !important;
+}
+
+.scale-hint {
+  left: 50% !important;
+  translate: -50% 0 !important;
+  transform: none !important;
+  bottom: calc(var(--ui-inset-bottom) + 8px) !important;
+  max-width: calc(var(--ui-stage) - var(--ui-side-left-band) - var(--ui-side-right-band) - 16px) !important;
+}
+
+.v4-depth {
+  left: 50% !important;
+  translate: -50% 0 !important;
+  transform: none !important;
+  bottom: calc(var(--ui-inset-bottom) + 52px) !important;
+}
+
+.v11-nav-controls {
+  left: 50% !important;
+  translate: -50% 0 !important;
+  transform: none !important;
+  bottom: calc(var(--ui-inset-bottom) + 96px) !important;
+}
+
+/* App overlay — centered stage */
+.app-shell {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 20 !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+body.sim-ready:not(.sim-booting) .app-shell {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.app-shell > * {
+  pointer-events: auto;
+}
+
+.topbar.liquid-shell {
+  position: fixed !important;
+  top: var(--ui-safe-top) !important;
+  left: var(--ui-stage-left) !important;
+  right: auto !important;
+  width: var(--ui-stage) !important;
+  z-index: 42 !important;
+}
+
+.sidebar.liquid:not(.panel--collapsed) {
+  position: fixed !important;
+  top: var(--ui-inset-top) !important;
+  left: calc(var(--ui-stage-left) + var(--ui-edge-gap)) !important;
+  bottom: var(--ui-inset-bottom) !important;
+  width: min(188px, calc(var(--ui-stage) * 0.155)) !important;
+  min-width: 164px !important;
+  max-width: min(204px, 16.5vw) !important;
+  max-height: none !important;
+  z-index: 41 !important;
+}
+
+.inspector.liquid:not(.panel--collapsed) {
+  position: fixed !important;
+  top: var(--ui-inset-top) !important;
+  left: auto !important;
+  right: calc(50% - var(--ui-stage) / 2 + var(--ui-edge-gap)) !important;
+  bottom: var(--ui-inset-bottom) !important;
+  width: min(220px, calc(var(--ui-stage) * 0.175)) !important;
+  min-width: 188px !important;
+  max-width: min(236px, 18.5vw) !important;
+  max-height: none !important;
+  z-index: 41 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.inspector.liquid:not(.panel--collapsed) {
+  pointer-events: auto !important;
+}
+
+.command-center.liquid-shell {
+  position: fixed !important;
+  left: var(--ui-stage-left) !important;
+  right: auto !important;
+  width: var(--ui-stage) !important;
+  bottom: var(--ui-safe-bottom) !important;
+  z-index: 42 !important;
+}
+
+/* Collapsed layout — see chrome.css (compact centered chips) */
+
+.panel--collapsed .brand,
+.panel--collapsed .crumbs,
+.panel--collapsed .status-pill,
+.panel--collapsed .metrics,
+.panel--collapsed .panel-title,
+.panel--collapsed .glass-input,
+.panel--collapsed .tree,
+.panel--collapsed .agent-list,
+.panel--collapsed .layers,
+.panel--collapsed .pressure,
+.panel--collapsed .inspector-live,
+.panel--collapsed .inspector-head,
+.panel--collapsed .tabs,
+.panel--collapsed .inspector-body,
+.panel--collapsed .command-input {
+  display: none !important;
+}
+
+
+@media (max-width: 1100px) {
+  :root {
+    --ui-stage: calc(100vw - 24px);
+  }
+
+  .sidebar.liquid {
+    width: min(260px, 42vw) !important;
+    min-width: 0 !important;
+  }
+
+  .inspector.liquid {
+    width: min(300px, 46vw) !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .inspector.liquid:not(.panel--collapsed) {
+    left: var(--ui-stage-left) !important;
+    right: auto !important;
+    width: var(--ui-stage) !important;
+    max-height: 36dvh !important;
+  }
+
+  .sidebar.liquid:not(.panel--collapsed) {
+    display: none !important;
+  }
+}
