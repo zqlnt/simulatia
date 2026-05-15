@@ -6,10 +6,10 @@ import { createBootOrbit } from './bootOrbit.js';
 
 const STAGES = [
   { until: 14, label: 'Preparing interface' },
-  { until: 42, label: 'Loading world assets' },
-  { until: 58, label: 'Building city simulation' },
-  { until: 78, label: 'Loading characters & rooms' },
-  { until: 92, label: 'Optimizing scene' },
+  { until: 36, label: 'Generating worlds' },
+  { until: 52, label: 'Building cities' },
+  { until: 68, label: 'Placing buildings' },
+  { until: 84, label: 'Loading rooms & agents' },
   { until: 100, label: 'Finalizing experience' },
 ];
 

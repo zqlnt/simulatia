@@ -359,33 +359,9 @@ body.sim-ready #app > .command-center {
     border-radius: var(--panel-radius) !important;
   }
 
-  .command-center.panel--collapsed {
-    display: flex !important;
-    bottom: calc(var(--ui-safe-bottom) + var(--ui-edge-gap)) !important;
-    left: 50% !important;
-    translate: -50% 0 !important;
-    z-index: 45 !important;
-  }
+  /* command prompt — mobile-layout-fixes.css */
 
-  .sidebar.panel--collapsed,
-  .inspector.panel--collapsed {
-    top: auto !important;
-    bottom: calc(var(--ui-safe-bottom) + var(--ui-command-band) + 8px) !important;
-    height: max-content !important;
-    max-height: 108px !important;
-    translate: none !important;
-    transform: none !important;
-  }
-
-  .sidebar.panel--collapsed {
-    left: calc(var(--ui-stage-left) + 6px) !important;
-    right: auto !important;
-  }
-
-  .inspector.panel--collapsed {
-    right: calc(50% - var(--ui-stage) / 2 + 6px) !important;
-    left: auto !important;
-  }
+  /* Collapsed side rails — panel-final-polish.css @900px */
 
   .sim-ready .segmented {
     display: none !important;

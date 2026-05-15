@@ -275,13 +275,13 @@ html[data-theme='dark'] .panel-chrome-btn {
   .sidebar.panel--collapsed {
     left: calc(var(--ui-stage-left) + var(--ui-edge-gap)) !important;
     right: auto !important;
-    max-height: min(var(--ui-rail-slot-h), 82px) !important;
+    max-height: min(var(--ui-rail-slot-h), 88px) !important;
   }
 
   .inspector.panel--collapsed {
     left: auto !important;
     right: calc(50% - var(--ui-stage) / 2 + var(--ui-edge-gap)) !important;
-    max-height: min(var(--ui-rail-slot-h), 108px) !important;
+    max-height: min(var(--ui-rail-slot-h), 88px) !important;
   }
 }
 
@@ -312,13 +312,14 @@ html[data-theme='dark'] .panel-chrome-btn {
   scrollbar-width: none;
 }
 
-.sidebar.panel--collapsed .panel-mini-bar {
-  gap: 2px;
-  padding: 3px 2px 4px;
+.sidebar.panel--collapsed .panel-mini-bar,
+.inspector.panel--collapsed .panel-mini-bar {
+  gap: 3px;
+  padding: 4px 3px 5px;
 }
 
 .panel-mini-bar--side-rail {
-  /* matched compact capsule — 4 icons max */
+  /* matched compact capsule — expand + 2 shortcuts */
 }
 
 /* Collapsed rails — circular icon buttons (not squircle) */
@@ -329,14 +330,7 @@ html[data-theme='dark'] .panel-chrome-btn {
   overflow: hidden;
 }
 
-.sidebar.panel--collapsed .panel-mini-btn {
-  width: 22px !important;
-  height: 22px !important;
-  min-width: 22px !important;
-  min-height: 22px !important;
-  font-size: 11px !important;
-}
-
+.sidebar.panel--collapsed .panel-mini-btn,
 .inspector.panel--collapsed .panel-mini-btn {
   width: 24px !important;
   height: 24px !important;
@@ -724,19 +718,26 @@ body.panel-top-collapsed #reset-camera {
 #scene-wrap .v4-depth {
   bottom: calc(var(--ui-safe-bottom) + var(--ui-edge-gap) + var(--ui-chip-h) + 96px) !important;
   display: flex !important;
+  align-items: center !important;
   justify-content: center !important;
   max-width: min(
     calc(var(--ui-stage) - var(--ui-side-left-band) - var(--ui-side-right-band) - 28px),
     340px
   ) !important;
-  padding: 4px 5px !important;
-  gap: 3px !important;
+  padding: 6px 8px !important;
+  gap: 5px !important;
 }
 
 #scene-wrap .v4-depth button {
-  padding: 4px 6px !important;
-  font-size: 10px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
   font-weight: 650 !important;
+  line-height: 1.2 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 body.panel-bottom-collapsed #scene-wrap .v11-nav-controls {
@@ -1240,16 +1241,61 @@ html[data-theme='dark'] .analytics-card {
 /* Tablet / mobile */
 @media (max-width: 900px) {
   :root {
-    --ui-rail-width: 42px;
+    --ui-rail-width: 40px;
     --ui-chip-h: 46px;
+    --ui-mobile-rail-inset: max(10px, env(safe-area-inset-left, 0px));
+  }
+
+  .sidebar.panel--collapsed,
+  .inspector.panel--collapsed {
+    top: auto !important;
+    bottom: var(--mobile-bottom-stack, calc(var(--ui-safe-bottom) + var(--ui-command-band) + 10px)) !important;
+    width: var(--ui-rail-width) !important;
+    min-width: var(--ui-rail-width) !important;
+    max-width: var(--ui-rail-width) !important;
+    height: max-content !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    translate: none !important;
+    transform: none !important;
+    justify-content: flex-end !important;
   }
 
   .sidebar.panel--collapsed {
-    left: calc(var(--ui-stage-left) + 6px) !important;
+    left: var(--ui-mobile-rail-inset) !important;
+    right: auto !important;
   }
 
   .inspector.panel--collapsed {
-    right: calc(50% - var(--ui-stage) / 2 + 6px) !important;
+    left: auto !important;
+    right: max(10px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .sidebar.panel--collapsed .panel-mini-btn,
+  .inspector.panel--collapsed .panel-mini-btn {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+  }
+
+  .sidebar.panel--collapsed .panel-mini-btn i,
+  .inspector.panel--collapsed .panel-mini-btn i {
+    font-size: 13px;
+  }
+
+  .sidebar.panel--collapsed .panel-mini-bar,
+  .inspector.panel--collapsed .panel-mini-bar {
+    gap: 4px;
+    padding: 5px 4px 6px;
+  }
+
+  .command-center.panel--collapsed {
+    left: 50% !important;
+    right: auto !important;
+    translate: none !important;
+    transform: translateX(-50%) !important;
   }
 
   .inspector-analytics-row {
@@ -1262,24 +1308,7 @@ html[data-theme='dark'] .analytics-card {
   will-change: transform, width, height, top, bottom, left, opacity;
 }
 
-.topbar.panel--transitioning.panel--collapsed,
-.command-center.panel--transitioning.panel--collapsed {
-  transform: translateX(-50%) scale(0.97) !important;
-  translate: none !important;
-  opacity: 0.94;
-}
-
-.topbar.panel--transitioning:not(.panel--collapsed),
-.command-center.panel--transitioning:not(.panel--collapsed) {
-  transform: scale(1) !important;
-  opacity: 1;
-}
-
-.sidebar.panel--transitioning.panel--collapsed,
-.inspector.panel--transitioning.panel--collapsed {
-  transform: scale(0.98) !important;
-  opacity: 0.95;
-}
+/* Panel warp motion — panel-liquid-motion.css */
 
 .command-center.panel--collapsed .panel-mini-bar--prompt-capsule {
   cursor: pointer;

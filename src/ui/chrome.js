@@ -14,7 +14,7 @@ const PANELS = [
 const INSPECTOR_TAB_ICONS = ['ti-list-details', 'ti-chart-line', 'ti-robot', 'ti-activity'];
 const MINI_NAV_LIMIT = 4;
 const MINI_DOCK_LIMIT = 4;
-const PANEL_TRANSITION_MS = 520;
+const PANEL_TRANSITION_MS = 580;
 
 const reducedMotion =
   typeof window !== 'undefined' &&
@@ -165,7 +165,7 @@ function buildMiniBar(el, panel) {
     });
     bar.appendChild(expandChip);
 
-    [...el.querySelectorAll('.tabs button')].slice(0, 3).forEach((tab, i) => {
+    [...el.querySelectorAll('.tabs button')].slice(0, 2).forEach((tab, i) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'panel-mini-btn';
@@ -233,6 +233,30 @@ export function initChrome() {
     chrome?.classList.toggle('is-collapsed', collapsed);
   }
 
+  let liquidTransitionCount = 0;
+
+  function beginLiquidTransition(el, collapsed) {
+    if (reducedMotion) return;
+    liquidTransitionCount += 1;
+    document.body.classList.add('panel-liquid-transition');
+    document.body.dataset.liquidPhase = collapsed ? 'collapse' : 'expand';
+    el.classList.add(collapsed ? 'panel--liquid-collapse' : 'panel--liquid-expand');
+    el.classList.add('panel--transitioning');
+  }
+
+  function endLiquidTransition(el) {
+    el.classList.remove(
+      'panel--transitioning',
+      'panel--liquid-collapse',
+      'panel--liquid-expand'
+    );
+    liquidTransitionCount = Math.max(0, liquidTransitionCount - 1);
+    if (liquidTransitionCount === 0) {
+      document.body.classList.remove('panel-liquid-transition');
+      delete document.body.dataset.liquidPhase;
+    }
+  }
+
   function setCollapsed(id, collapsed) {
     state[id] = collapsed;
     saveState(state);
@@ -241,7 +265,15 @@ export function initChrome() {
     const el = document.querySelector(entry.selector);
     if (!el) return;
 
-    if (!reducedMotion) el.classList.add('panel--transitioning');
+    if (reducedMotion) {
+      syncChrome(el, collapsed);
+      const mini = el.querySelector('.panel-mini-bar');
+      if (mini) mini.hidden = !collapsed;
+      syncShellInsets();
+      return;
+    }
+
+    beginLiquidTransition(el, collapsed);
     syncChrome(el, collapsed);
 
     const mini = el.querySelector('.panel-mini-bar');
@@ -249,14 +281,9 @@ export function initChrome() {
 
     syncShellInsets();
 
-    const finish = () => el.classList.remove('panel--transitioning');
-    if (reducedMotion) {
-      finish();
-      return;
-    }
     window.setTimeout(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(finish);
+        requestAnimationFrame(() => endLiquidTransition(el));
       });
     }, PANEL_TRANSITION_MS);
   }

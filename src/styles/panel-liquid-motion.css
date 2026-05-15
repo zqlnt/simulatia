@@ -1,0 +1,261 @@
+/**
+ * Liquid bouncy panel morph — panels + scene HUD move together on collapse/expand.
+ */
+
+:root {
+  --liquid-spring: cubic-bezier(0.34, 1.42, 0.56, 1);
+  --liquid-spring-soft: cubic-bezier(0.22, 1.18, 0.42, 1);
+  --liquid-dur: 0.58s;
+  --liquid-dur-fast: 0.48s;
+}
+
+@keyframes liquid-panel-warp {
+  0% {
+    transform: var(--liquid-transform-base, none) scale(1);
+    filter: blur(0);
+  }
+  28% {
+    transform: var(--liquid-transform-base, none) scale(0.96, 1.05) skewX(-1.4deg);
+    filter: blur(0.35px);
+  }
+  52% {
+    transform: var(--liquid-transform-base, none) scale(1.04, 0.94) skewX(0.8deg);
+    filter: blur(0.2px);
+  }
+  76% {
+    transform: var(--liquid-transform-base, none) scale(0.99, 1.02) skewX(-0.35deg);
+    filter: blur(0.08px);
+  }
+  100% {
+    transform: var(--liquid-transform-base, none) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes liquid-panel-squish-in {
+  0% {
+    transform: var(--liquid-transform-base, none) scale(1.08, 0.88);
+    opacity: 0.72;
+    filter: blur(0.5px);
+  }
+  45% {
+    transform: var(--liquid-transform-base, none) scale(0.94, 1.06);
+    opacity: 0.96;
+    filter: blur(0.15px);
+  }
+  72% {
+    transform: var(--liquid-transform-base, none) scale(1.02, 0.98);
+    opacity: 1;
+  }
+  100% {
+    transform: var(--liquid-transform-base, none) scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes liquid-ripple-sheen {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  40% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes liquid-stack-bounce {
+  0% {
+    transform: var(--liquid-stack-transform, translateX(-50%)) translateY(0);
+  }
+  32% {
+    transform: var(--liquid-stack-transform, translateX(-50%)) translateY(-7px);
+  }
+  58% {
+    transform: var(--liquid-stack-transform, translateX(-50%)) translateY(3px);
+  }
+  100% {
+    transform: var(--liquid-stack-transform, translateX(-50%)) translateY(0);
+  }
+}
+
+/* Active panel morph */
+.panel-surface.panel--transitioning {
+  position: relative;
+  overflow: visible !important;
+  animation: liquid-panel-warp var(--liquid-dur) var(--liquid-spring) both;
+  transform-origin: center center;
+  z-index: 46 !important;
+}
+
+.panel-surface.panel--transitioning.panel--liquid-collapse {
+  animation: liquid-panel-squish-in var(--liquid-dur) var(--liquid-spring) both;
+}
+
+.panel-surface.panel--transitioning.panel--liquid-expand {
+  animation: liquid-panel-warp var(--liquid-dur) var(--liquid-spring-soft) both;
+}
+
+/* Liquid sheen ripple overlay */
+.panel-surface.panel--transitioning::after {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 50%,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.12) 38%,
+    transparent 68%
+  );
+  mix-blend-mode: soft-light;
+  animation: liquid-ripple-sheen var(--liquid-dur) var(--liquid-spring-soft) both;
+}
+
+html[data-theme='dark'] .panel-surface.panel--transitioning::after {
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 50%,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.05) 40%,
+    transparent 68%
+  );
+}
+
+/* Preserve centred transforms while warping */
+.topbar.panel--transitioning,
+.command-center.panel--transitioning {
+  --liquid-transform-base: translateX(-50%);
+}
+
+.sidebar.panel--transitioning {
+  --liquid-transform-base: none;
+  transform-origin: left center;
+}
+
+.inspector.panel--transitioning {
+  --liquid-transform-base: none;
+  transform-origin: right center;
+}
+
+.topbar.panel--transitioning.panel--collapsed,
+.command-center.panel--transitioning.panel--collapsed {
+  translate: none !important;
+}
+
+/* Content cross-fade during morph */
+.panel--transitioning > :not(.panel-chrome):not(.panel-mini-bar) {
+  transition:
+    opacity calc(var(--liquid-dur) * 0.45) var(--liquid-spring-soft),
+    transform calc(var(--liquid-dur) * 0.55) var(--liquid-spring) !important;
+}
+
+.panel--transitioning.panel--liquid-collapse > :not(.panel-chrome):not(.panel-mini-bar) {
+  opacity: 0 !important;
+  transform: scale(0.92) !important;
+}
+
+.panel--transitioning.panel--liquid-expand > :not(.panel-chrome):not(.panel-mini-bar) {
+  opacity: 0.35 !important;
+  transform: scale(1.04) !important;
+}
+
+.panel--transitioning .panel-mini-bar {
+  animation: liquid-panel-warp calc(var(--liquid-dur) * 0.85) var(--liquid-spring) both;
+}
+
+/* ——— Global liquid phase: scene HUD + panels move together ——— */
+body.panel-liquid-transition .topbar.liquid-shell,
+body.panel-liquid-transition .sidebar.liquid,
+body.panel-liquid-transition .inspector.liquid,
+body.panel-liquid-transition .command-center.liquid-shell {
+  transition:
+    top var(--liquid-dur) var(--liquid-spring),
+    bottom var(--liquid-dur) var(--liquid-spring),
+    left var(--liquid-dur) var(--liquid-spring),
+    right var(--liquid-dur) var(--liquid-spring),
+    width var(--liquid-dur) var(--liquid-spring),
+    min-width var(--liquid-dur) var(--liquid-spring),
+    max-width var(--liquid-dur) var(--liquid-spring),
+    height var(--liquid-dur) var(--liquid-spring),
+    min-height var(--liquid-dur) var(--liquid-spring),
+    max-height var(--liquid-dur) var(--liquid-spring),
+    padding var(--liquid-dur) var(--liquid-spring-soft),
+    transform var(--liquid-dur) var(--liquid-spring),
+    border-radius var(--liquid-dur) var(--liquid-spring-soft),
+    opacity calc(var(--liquid-dur) * 0.7) var(--liquid-spring-soft),
+    box-shadow var(--liquid-dur) var(--liquid-spring-soft) !important;
+}
+
+body.panel-liquid-transition #scene-wrap .v4-depth,
+body.panel-liquid-transition #scene-wrap .v11-nav-controls,
+body.panel-liquid-transition #scene-wrap .v4-hint,
+body.panel-liquid-transition #scene-wrap .v10-agent-focus {
+  transition:
+    bottom var(--liquid-dur) var(--liquid-spring),
+    top var(--liquid-dur) var(--liquid-spring),
+    transform var(--liquid-dur) var(--liquid-spring),
+    opacity calc(var(--liquid-dur) * 0.65) var(--liquid-spring-soft) !important;
+}
+
+body.panel-liquid-transition #scene-wrap .v4-depth,
+body.panel-liquid-transition #scene-wrap .v11-nav-controls {
+  animation: liquid-stack-bounce var(--liquid-dur) var(--liquid-spring) both;
+  --liquid-stack-transform: translateX(-50%);
+}
+
+body.panel-liquid-transition .command-center.panel--collapsed,
+body.panel-liquid-transition .command-center.panel--transitioning {
+  animation: liquid-stack-bounce var(--liquid-dur) var(--liquid-spring) both;
+  --liquid-stack-transform: translateX(-50%);
+}
+
+body.panel-liquid-transition .sidebar.panel--collapsed,
+body.panel-liquid-transition .inspector.panel--collapsed {
+  transition:
+    bottom var(--liquid-dur) var(--liquid-spring),
+    transform var(--liquid-dur) var(--liquid-spring) !important;
+}
+
+body.panel-liquid-transition[data-liquid-phase='collapse'] #scene-wrap .v4-depth,
+body.panel-liquid-transition[data-liquid-phase='collapse'] #scene-wrap .v11-nav-controls {
+  animation-delay: 0.04s;
+}
+
+body.panel-liquid-transition[data-liquid-phase='expand'] .command-center.panel--transitioning {
+  animation-delay: 0.02s;
+}
+
+/* Subtle viewport gel during panel morph */
+body.panel-liquid-transition #scene-wrap #v4Canvas {
+  transition: filter var(--liquid-dur) var(--liquid-spring-soft) !important;
+  filter: blur(0.45px) saturate(1.03) !important;
+}
+
+body.panel-liquid-transition #scene-wrap.room-mode #v4Canvas,
+body.panel-liquid-transition #scene-wrap.agent-solo-mode #v4Canvas {
+  filter: none !important;
+}
+
+body:not(.panel-liquid-transition) #scene-wrap #v4Canvas {
+  transition: filter 0.42s var(--liquid-spring-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-surface.panel--transitioning,
+  .panel-surface.panel--transitioning::after,
+  body.panel-liquid-transition #scene-wrap .v4-depth,
+  body.panel-liquid-transition #scene-wrap .v11-nav-controls,
+  body.panel-liquid-transition .command-center.panel--collapsed {
+    animation: none !important;
+  }
+
+  body.panel-liquid-transition #scene-wrap #v4Canvas {
+    filter: none !important;
+  }
+}

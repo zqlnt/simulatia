@@ -304,12 +304,13 @@ body.sim-ready #scene-wrap .v11-nav-controls {
 /* Worlds / City / Building / Room / Agent — compact, inset from side panels */
 body.sim-ready #scene-wrap .v4-depth {
   display: flex !important;
+  align-items: center !important;
   max-width: min(
     calc(var(--ui-stage) - var(--ui-side-left-band) - var(--ui-side-right-band) - 28px),
     340px
   ) !important;
-  padding: 4px 5px !important;
-  gap: 3px !important;
+  padding: 6px 8px !important;
+  gap: 5px !important;
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
@@ -322,12 +323,17 @@ body.sim-ready #scene-wrap .v4-depth::-webkit-scrollbar {
 }
 
 body.sim-ready #scene-wrap .v4-depth button {
-  padding: 4px 6px !important;
-  font-size: 10px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
   font-weight: 650 !important;
-  line-height: 1.1 !important;
+  line-height: 1.2 !important;
   flex: 0 0 auto;
   white-space: nowrap;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 body.sim-ready:not(.panel-left-collapsed) #scene-wrap .v4-depth,
@@ -336,6 +342,16 @@ body.sim-ready:not(.panel-right-collapsed) #scene-wrap .v4-depth {
     calc(var(--ui-stage) - var(--ui-side-left-band) - var(--ui-side-right-band) - 36px),
     300px
   ) !important;
+}
+
+@media (max-width: 900px) {
+  html.sim-mobile body.sim-ready:not(.panel-left-collapsed) #scene-wrap .v4-depth,
+  html.sim-mobile body.sim-ready:not(.panel-right-collapsed) #scene-wrap .v4-depth {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    max-width: min(calc(100vw - 24px), 300px) !important;
+  }
 }
 
 /* ——— Boot & reveal ——— */
@@ -418,25 +434,22 @@ body.sim-ready:not(.sim-booting) .app-shell {
   }
 
   body.sim-ready #scene-wrap .v4-depth button {
-    padding: 3px 5px !important;
-    font-size: 9.5px !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 0 9px !important;
+    font-size: 10.5px !important;
   }
+}
 
-  /* Collapsed side rails — bottom chips, not full-height stretch */
+@media (max-width: 1100px) and (min-width: 901px) {
   .sidebar.panel--collapsed,
   .inspector.panel--collapsed {
     top: auto !important;
-    bottom: var(--ui-inset-bottom) !important;
+    bottom: calc(var(--ui-safe-bottom) + var(--ui-command-band) + 10px) !important;
     height: max-content !important;
-    max-height: 108px !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
+    max-height: none !important;
     translate: none !important;
     transform: none !important;
-  }
-
-  .sidebar.panel--collapsed {
-    max-height: min(108px, 82px) !important;
   }
 }
 
@@ -445,39 +458,6 @@ body.sim-ready:not(.sim-booting) .app-shell {
   .command-center.panel--collapsed .panel-mini-btn {
     min-width: 36px !important;
     min-height: 36px !important;
-  }
-
-  .sidebar.panel--collapsed .panel-mini-btn,
-  .inspector.panel--collapsed .panel-mini-btn {
-    width: 24px !important;
-    height: 24px !important;
-    min-width: 24px !important;
-    min-height: 24px !important;
-  }
-
-  .sidebar.panel--collapsed,
-  .inspector.panel--collapsed {
-    top: auto !important;
-    bottom: calc(var(--ui-safe-bottom) + var(--ui-command-band) + 8px) !important;
-    height: max-content !important;
-    max-height: 108px !important;
-    translate: none !important;
-    transform: none !important;
-  }
-
-  .sidebar.panel--collapsed {
-    left: calc(var(--ui-stage-left) + 6px) !important;
-    right: auto !important;
-  }
-
-  .inspector.panel--collapsed {
-    right: calc(50% - var(--ui-stage) / 2 + 6px) !important;
-    left: auto !important;
-  }
-
-  body.sim-ready #scene-wrap .v4-depth {
-    max-width: min(calc(100vw - 96px), 260px) !important;
-    bottom: calc(var(--ui-safe-bottom) + var(--ui-edge-gap) + var(--ui-chip-h) + 96px) !important;
   }
 
   .topbar.panel--collapsed {

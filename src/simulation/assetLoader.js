@@ -105,13 +105,7 @@ export function createAssetLoader(THREE) {
       return g;
     }
 
-    const box = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.3, 0.3),
-      new THREE.MeshPhongMaterial({ color: 0xcccccc })
-    );
-    box.position.y = 0.15;
-    g.add(box);
-    return g;
+    return createProceduralFallback('proceduralDesk');
   }
 
   function loadById(assetId) {

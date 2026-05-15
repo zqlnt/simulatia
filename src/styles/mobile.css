@@ -61,7 +61,7 @@ html[data-theme="dark"] .v11-map-coach{background:rgba(17,22,36,.62);border-colo
   .topbar .crumbs,.topbar .status-pill,.topbar .metrics{display:none!important}
   .topbar .small-action,.topbar .theme-switch{width:36px;height:36px;margin-left:auto}.topbar .theme-switch{margin-left:0}
   .command-center.liquid-shell:not(.panel--collapsed){position:fixed!important;left:10px!important;right:10px!important;top:auto!important;bottom:max(10px,env(safe-area-inset-bottom))!important;z-index:42!important;display:grid!important;padding:8px!important;border-radius:24px!important;background:rgba(255,255,255,.24)!important}
-  .command-center.panel--collapsed{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:max(10px,env(safe-area-inset-bottom))!important;translate:-50% 0!important;z-index:45!important}
+  /* command prompt centre — mobile-layout-fixes.css */
   .command-input{height:46px!important;border-radius:19px!important}.dock{display:none!important}
   .sidebar{display:none!important}
   .inspector{display:flex!important;position:fixed!important;left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;z-index:16!important;max-height:36dvh!important;border-radius:28px!important;background:rgba(255,255,255,.25)!important}
@@ -70,7 +70,7 @@ html[data-theme="dark"] .v11-map-coach{background:rgba(17,22,36,.62);border-colo
   .segmented{top:126px!important}.segmented button{height:30px;padding:0 11px}
   .floating-status,.mini-stack,.v7-sim-stats,.v6-realism-badge,.scale-hint{display:none!important}
   .v4-depth{left:50%!important;bottom:calc(36dvh + 24px)!important;transform:translateX(-50%)!important;max-width:calc(100vw - 20px);overflow:auto;padding:6px!important}
-  .v4-depth button{padding:8px 10px!important}
+  html.sim-mobile #scene-wrap .v4-depth button{min-height:38px!important;height:38px!important;padding:0 10px!important;font-size:11px!important}
   .v11-nav-controls{left:10px!important;right:10px!important;bottom:calc(36dvh + 68px)!important;justify-content:center;border-radius:22px!important}
   .v11-nav-controls button span{display:none}.v11-nav-controls button{width:36px;justify-content:center;padding:0}.v11-nav-controls strong{font-size:10px}
   .v11-map-coach{top:164px!important;width:calc(100vw - 28px);justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -149,17 +149,7 @@ html[data-theme="dark"] .icon-lens,html[data-theme="dark"] .small-action,html[da
   .inspector-body{max-height:calc(var(--mobile-sheet-height) - 64px)!important;overflow:auto!important}
   .segmented{top:126px!important;max-width:calc(100vw - 20px)!important;overflow:auto!important;scrollbar-width:none}
   .segmented::-webkit-scrollbar,.v4-depth::-webkit-scrollbar{display:none}
-  .v4-depth{
-    left:50%!important;right:auto!important;bottom:calc(var(--mobile-sheet-height) + 12px)!important;transform:translateX(-50%)!important;
-    max-width:calc(100vw - 22px)!important;width:max-content!important;justify-content:flex-start!important;overflow-x:auto!important;overflow-y:hidden!important;
-    padding:6px!important;border-radius:22px!important;gap:4px!important;z-index:18!important;box-shadow:0 12px 34px rgba(20,24,32,.18)!important;
-  }
-  .v4-depth button{min-width:54px!important;height:32px!important;padding:0 9px!important;white-space:nowrap!important;flex:0 0 auto!important}
-  .v11-nav-controls{
-    left:50%!important;right:auto!important;bottom:calc(var(--mobile-sheet-height) + 56px)!important;transform:translateX(-50%)!important;
-    width:max-content!important;max-width:calc(100vw - 22px)!important;justify-content:center!important;border-radius:22px!important;padding:6px!important;gap:5px!important;z-index:19!important;
-    box-shadow:0 14px 38px rgba(20,24,32,.20)!important;
-  }
+  /* v4-depth + v11-nav stack — mobile-layout-fixes.css */
   .v11-nav-controls button{width:36px!important;height:32px!important;justify-content:center!important;padding:0!important;flex:0 0 auto!important}
   .v11-nav-controls button span{display:none!important}
   .v11-nav-controls strong{max-width:136px!important;overflow:hidden!important;text-overflow:ellipsis!important;font-size:10px!important;padding:0 5px!important}
@@ -172,6 +162,6 @@ html[data-theme="dark"] .icon-lens,html[data-theme="dark"] .small-action,html[da
   :root{--mobile-sheet-height:clamp(142px,24dvh,205px)}
   .stat-grid{grid-template-columns:repeat(2,1fr)!important}
   .inspector-body .copy{display:none!important}
-  .v4-depth button{min-width:49px!important;font-size:10px!important}
+  html.sim-mobile #scene-wrap .v4-depth button{min-width:50px!important;min-height:36px!important;height:36px!important;font-size:10.5px!important}
   .v11-nav-controls strong{max-width:102px!important}
 }

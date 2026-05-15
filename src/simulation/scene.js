@@ -604,7 +604,11 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   interior.visible = false;
   var roomNetwork=buildRoomLayer(ctx);
 
-  focus.overview={key:'overview',mode:'city',name:'Regional City Overview',subtitle:'Multi-city operational layer · Health 97%',description:'Three connected districts with animated transit, living traffic, drones, procedural materials, expressive walking agents, skyline depth and an infinite city atmosphere.',health:97,agents:142,workflows:18,transit:91,active:32,focus:v(8,4,4),radius:82};
+  var CITY_OVERVIEW_FOCUS=v(2.3,5.2,5);
+  var MOBILE_CITY_FOCUS=v(-2.5,5.1,4.2);
+  var MOBILE_CITY_THETA=2.28;
+  var MOBILE_CITY_PHI=.9;
+  focus.overview={key:'overview',mode:'city',name:'Regional City Overview',subtitle:'Multi-city operational layer · Health 97%',description:'Three connected districts with animated transit, living traffic, drones, procedural materials, expressive walking agents, skyline depth and an infinite city atmosphere.',health:97,agents:142,workflows:18,transit:91,active:32,focus:CITY_OVERVIEW_FOCUS.clone(),radius:82,phi:.94,theta:.68};
   focus.worlds={key:'worlds',mode:'worlds',name:'World Atlas',subtitle:'Worlds → cities → buildings → rooms',description:'A zoomed-out atlas for selecting connected worlds. Click a world to descend into city view, then enter buildings and rooms.',health:97,agents:142,workflows:18,transit:91,active:3,focus:v(0,7,0),radius:58};
   focus['hq-room']={key:'hq-room',mode:'room',name:'Simulatia HQ · Command Room',subtitle:'Isometric room network · Click agents to focus their pod',description:'Aligned floor grid with diamond pods. Each agent occupies one tile with desk props and GLB characters grounded above the floor.',health:97,agents:8,workflows:6,transit:100,active:1,focus:v(0,.85,0),radius:22,theta:.78,phi:.72,fov:38};
   focus['research-room']={key:'research-room',mode:'room',name:'Research Bay',subtitle:'Research pod',description:'Healthcare research agent with office cubicle asset.',health:98,agents:2,workflows:4,transit:100,active:1,focus:v(-5.18,.85,0),radius:7.5,theta:.78,phi:.72,fov:38,parentKey:'hq'};
@@ -732,7 +736,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     renderScope=renderMode||'city';
     mode=activeMode||renderScope;
     universe.visible=renderScope==='worlds';
-    city.visible=renderScope==='city'||renderScope==='agent';
+    city.visible=renderScope==='city'||renderScope==='agent'||renderScope==='building'||mode==='building';
     interior.visible=renderScope==='room';
     hint.classList.toggle('show',renderScope==='room'||mode==='agent');
     if(agentFocusHint){
@@ -774,6 +778,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     }else{
       leaveAgentFocus();
     }
+    applyMobileCityFraming();
   }
   function updatePanel(d){if(nodeTitle)nodeTitle.textContent=d.name;if(nodeSub)nodeSub.textContent=d.subtitle;if(nodeDesc)nodeDesc.textContent=d.description;if(nodeBadge){nodeBadge.textContent=d.health>=96?'Excellent':d.health>=91?'Good':'Watch';nodeBadge.style.color=d.health>=96?'var(--green)':d.health>=91?'var(--orange)':'var(--red)'} updateBreadcrumbs(d); updateNavRows(); if(topHealth)topHealth.textContent=d.health+'%';if(focusName)focusName.textContent=d.name;if(zoomState)zoomState.textContent=d.mode==='worlds'?'Worlds':d.mode==='room'?'Room':d.mode==='agent'?'Agent':d.radius>=70?'City':d.radius>=34?'District':'Building'; var a=document.getElementById('stat-agents'); if(a)a.textContent=d.agents; var w=document.getElementById('stat-workflows'); if(w)w.textContent=d.workflows; var tr=document.getElementById('stat-transit'); if(tr)tr.textContent=d.transit+'%';}
   function focusTo(key,silent){
@@ -787,15 +792,20 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     if(d.mode==='agent'&&d.renderMode==='agent'&&d.agentGroup) applyCityAgentFocus(d.agentGroup);
     else if(d.mode!=='agent'||d.renderMode!=='agent') clearCityAgentFocus();
     var nextRender=d.renderMode||(d.mode==='agent'?'room':d.mode)||'city';
+    if(d.mode==='building') nextRender='city';
     if(d.mode==='agent'&&!d.renderMode) nextRender='room';
     setMode(nextRender,d.mode||'city');
     if(d.mode==='agent'&&d.renderMode==='room') syncRoomPodFocus(d.key);
     else if(nextRender!=='room'||d.mode!=='agent') clearAgentPodFocus();
-    S.targetFocus.copy(d.focus); S.targetRadius=mapMode?Math.max(d.radius,mode==='room'?17:62):d.radius;
+    if(mobileMode&&key==='overview') S.targetFocus.copy(MOBILE_CITY_FOCUS);
+    else S.targetFocus.copy(d.focus);
+    S.targetRadius=mapMode?Math.max(d.radius,mode==='room'?17:62):d.radius;
     S.targetFov=d.fov!=null?d.fov:(d.mode==='agent'?38:(d.mode==='room'?48:(d.mode==='worlds'?38:42)));
     S.targetPhi=d.phi!=null?d.phi:(d.mode==='agent'?.92:d.mode==='worlds'?.86:d.mode==='room'?1.08:key==='overview'?.96:.75);
     if(mapMode){S.targetPhi=d.mode==='room'?.45:.24; S.targetFov=34;}
     if(d.theta!=null) S.targetTheta=d.theta; else if(d.mode==='worlds')S.targetTheta=.45; else if(key==='research')S.targetTheta=.92; else if(key==='harbor')S.targetTheta=.38; else if(d.mode==='room')S.targetTheta=0;
+    if(mobileMode&&key==='overview'){S.targetRadius=Math.max(d.radius||82,90);S.targetPhi=MOBILE_CITY_PHI;S.targetTheta=MOBILE_CITY_THETA;}
+    applyMobileCityFraming();
     S.last=performance.now(); updatePanel(d); setSelectedHalo(d);
     if((d.mode||'city')!==wasMode && !silent){
       beginViewportTransition(d.mode==='room'?'enter':'shift',d.mode==='room'?480:360);
@@ -971,22 +981,48 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   }
   applyTheme(doc.getAttribute('data-theme')==='dark');
 
-  var S={theta:.72,phi:.96,radius:82,targetTheta:.72,targetPhi:.96,targetRadius:82,focus:v(8,4,4),targetFocus:v(8,4,4),look:v(8,4,4),targetFov:42,auto:true,drag:false,pid:null,moved:false,sx:0,sy:0,lx:0,ly:0,last:performance.now()};
+  var S={theta:.68,phi:.94,radius:82,targetTheta:.68,targetPhi:.94,targetRadius:82,focus:CITY_OVERVIEW_FOCUS.clone(),targetFocus:CITY_OVERVIEW_FOCUS.clone(),look:CITY_OVERVIEW_FOCUS.clone(),targetFov:42,auto:true,drag:false,pid:null,moved:false,sx:0,sy:0,lx:0,ly:0,last:performance.now()};
+  function applyMobileCityFraming(){
+    var w=wrap.clientWidth||800,h=wrap.clientHeight||500;
+    var dpr=renderer.getPixelRatio();
+    var fw=Math.max(1,Math.floor(w*dpr)),fh=Math.max(1,Math.floor(h*dpr));
+    var inCityView=(renderScope==='city'||renderScope==='building')&&mode!=='agent'&&!mapMode;
+    if(mobileMode&&inCityView){
+      var rootStyle=getComputedStyle(doc);
+      var topInset=parseFloat(rootStyle.getPropertyValue('--ui-inset-top'))||68;
+      var bottomInset=parseFloat(rootStyle.getPropertyValue('--ui-inset-bottom'))||112;
+      var shiftY=Math.round((bottomInset-topInset)*0.38*dpr);
+      var shiftX=Math.round(28*dpr);
+      camera.setViewOffset(fw,fh,shiftX,shiftY,fw,fh);
+    }else{
+      camera.clearViewOffset();
+    }
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
   function resize(){
     mobileMode=!!mqMobile.matches;
     var w=wrap.clientWidth||800,h=wrap.clientHeight||500;
-    renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+    renderer.setSize(w,h,false);
+    applyMobileCityFraming();
     var bw=window.innerWidth||w,bh=window.innerHeight||h;
     bgRenderer.setSize(bw,bh,false);bgCamera.aspect=bw/bh;bgCamera.updateProjectionMatrix();
     doc.classList.toggle('sim-mobile',mobileMode);
+    if(mobileMode&&selected==='overview'&&(renderScope==='city'||mode==='city')){
+      S.targetFocus.copy(MOBILE_CITY_FOCUS);
+      S.targetRadius=Math.max(S.targetRadius,90);
+      S.targetPhi=MOBILE_CITY_PHI;
+      S.targetTheta=MOBILE_CITY_THETA;
+    }
   } window.addEventListener('resize',resize); resize();
+  if(mqMobile.addEventListener) mqMobile.addEventListener('change',resize);
   var activePointers={}, pinchDistance=null;
   function pointerList(){return Object.keys(activePointers).map(function(k){return activePointers[k]})}
   function dist2(a,b){var dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)}
   canvas.addEventListener('pointerdown',function(e){canvas.setPointerCapture(e.pointerId);activePointers[e.pointerId]={x:e.clientX,y:e.clientY};S.drag=true;S.pid=e.pointerId;S.moved=false;S.sx=S.lx=e.clientX;S.sy=S.ly=e.clientY;S.last=performance.now();canvas.classList.add('dragging')});
   canvas.addEventListener('pointermove',function(e){if(activePointers[e.pointerId])activePointers[e.pointerId]={x:e.clientX,y:e.clientY};var pts=pointerList(); if(pts.length>=2){var nd=dist2(pts[0],pts[1]); if(pinchDistance){S.targetRadius=clamp(S.targetRadius-(nd-pinchDistance)*.045,mode==='agent'?2.4:(mode==='room'?7.6:14),132); S.moved=true;} pinchDistance=nd; S.last=performance.now(); return;} if(!S.drag||S.pid!==e.pointerId)return;var dx=e.clientX-S.lx,dy=e.clientY-S.ly;if(Math.abs(e.clientX-S.sx)+Math.abs(e.clientY-S.sy)>4)S.moved=true;S.targetTheta-=dx*(mapMode?.0048:.0075);S.targetPhi=clamp(S.targetPhi+dy*(mapMode?.0038:.0058),.16,1.42);S.lx=e.clientX;S.ly=e.clientY});
   function end(e){delete activePointers[e.pointerId]; if(pointerList().length<2)pinchDistance=null; if(S.pid!==e.pointerId)return;S.drag=false;canvas.classList.remove('dragging');if(!S.moved)pick(e.clientX,e.clientY);S.pid=null} canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);canvas.addEventListener('pointerleave',end);
-  canvas.addEventListener('wheel',function(e){e.preventDefault();S.targetRadius=clamp(S.targetRadius+e.deltaY*(mapMode?.05:.035),mode==='agent'?2.4:(mode==='room'?7.6:14),mapMode?155:128);S.last=performance.now();if(mode==='agent'&&S.targetRadius>7.8){var ad=focus[selected];leaveAgentFocus();focusTo(ad&&ad.parentKey?ad.parentKey:'overview');return}if(S.targetRadius>118&&mode!=='worlds')focusTo('worlds')},{passive:false});
+  canvas.addEventListener('wheel',function(e){e.preventDefault();var agentMin=mode==='agent'?2.4:(mode==='room'?7.6:14);S.targetRadius=clamp(S.targetRadius+e.deltaY*(mapMode?.05:.035),agentMin,mapMode?155:128);S.last=performance.now();if(mode==='agent'){var ad=focus[selected];var exitR=ad&&ad.renderMode==='room'?10.5:8.8;if(S.targetRadius>exitR){leaveAgentFocus();focusTo(ad&&ad.parentKey?ad.parentKey:'overview');return}}if(S.targetRadius>118&&mode!=='worlds')focusTo('worlds')},{passive:false});
   var ray=new THREE.Raycaster(), mouse=new THREE.Vector2();
   function pick(x,y){var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hit=ray.intersectObjects(selectable,false)[0]; if(hit){var o=hit.object;if(o.userData.pickType==='agent')openAgent({key:o.userData.agentKey||o.userData.focusKey,name:o.userData.agentName,role:o.userData.agentRole,group:o.userData.agentGroup||null,roomOnly:!!o.userData.agentRoom}); else if(o.userData.focusKey){var k=o.userData.focusKey; if(mode==='building'&&selected===k&&focus[k]&&focus[k].canEnter)enterRoom(k); else focusTo(k)}}}
   function hoverAt(x,y){if(S.drag)return; var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hit=ray.intersectObjects(selectable,false)[0]; hovered=hit?hit.object:null; canvas.style.cursor=hovered?'pointer':'grab'; if(hoverRing){if(hovered&&hovered.userData&&hovered.userData.focusKey){var wp=new THREE.Vector3(); hovered.getWorldPosition(wp); hoverRing.position.set(wp.x,.17,wp.z); var sx=hovered.userData.pickType==='agent'?.65:(hovered.geometry&&hovered.geometry.boundingSphere?hovered.geometry.boundingSphere.radius:1.2); hoverRing.scale.setScalar(Math.max(.55,Math.min(3.5,sx*.68))); hoverRing.visible=mode!=='agent'} else hoverRing.visible=false}}
@@ -1009,12 +1045,14 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     prog(58,'Generating worlds…'); focusTo('worlds',true); beginViewportTransition('shift',360);
     later(700,function(){prog(64,'Building city…'); focusTo('overview');});
     later(1600,function(){prog(72,'Placing headquarters…'); focusTo('hq');});
-    later(2600,function(){prog(82,'Loading rooms…'); enterRoom('hq');});
-    later(3600,function(){prog(90,'Spawning agents…'); focusTo('hq-room');});
-    later(4400,function(){
+    later(2600,function(){prog(80,'Loading rooms…'); enterRoom('hq');});
+    later(3600,function(){prog(86,'Spawning agents…'); focusTo('hq-room');});
+    later(4800,function(){prog(92,'Returning to city view…'); focusTo('hq');});
+    later(5600,function(){
       prog(96,'Ready — explore freely');
       introRunning=false;
       wrap.classList.remove('guided-intro-running');
+      S.auto=true;
       if(onReady) onReady();
     });
   }
@@ -1026,7 +1064,16 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     if(!tabVisible){return}
     if(!firstFrameFired&&frame>0){firstFrameFired=true; if(onFirstFrame) onFirstFrame();}
     if(!wrap.classList.contains('is-transitioning')&&(canvas.classList.contains('transitioning')||(cinema&&cinema.classList.contains('show')))){finishViewportTransition()}
-    if(S.auto&&!S.drag&&!mapMode&&performance.now()-S.last>1700){S.targetTheta+=mode==='room'?.00055:.00155;S.targetPhi+=((mode==='room'?.76:.88)+Math.sin(t*.18)*.035-S.targetPhi)*.010}
+    if(S.auto&&!S.drag&&!mapMode&&performance.now()-S.last>1700){
+      if(mobileMode&&selected==='overview'&&(renderScope==='city'||mode==='city')){
+        S.targetTheta=MOBILE_CITY_THETA;
+        S.targetPhi=MOBILE_CITY_PHI+(Math.sin(t*.18)*.012);
+        S.targetFocus.lerp(MOBILE_CITY_FOCUS,.08);
+      }else{
+        S.targetTheta+=mode==='room'?.00055:.00155;
+        S.targetPhi+=((mode==='room'?.76:.88)+Math.sin(t*.18)*.035-S.targetPhi)*.010;
+      }
+    }
     // Frame-rate independent cinematic easing: smoother focus, zoom and look-at drift.
     var motionBoost=reduceMotion?2.8:1;
     var angleEase=1-Math.exp(-dt*(mode==='room'?6.8:5.4)*motionBoost);

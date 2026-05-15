@@ -46,8 +46,8 @@ body.sim-booting #scene-wrap.scene-has-preview {
   pointer-events: none;
   z-index: -1;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, rgba(0, 0, 0, 0.08) 100%),
-    linear-gradient(180deg, rgba(236, 236, 236, 0.35) 0%, rgba(236, 236, 236, 0.55) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, transparent 14%, transparent 86%, rgba(255, 255, 255, 0.82) 100%),
+    radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, rgba(236, 236, 240, 0.42) 100%);
 }
 
 html[data-theme='dark'] .boot-shell::after {

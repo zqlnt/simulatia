@@ -14,6 +14,8 @@ import './styles/ui-polish.css';
 import './styles/panel-final-polish.css';
 import './styles/scene-atmosphere.css';
 import './styles/production-polish.css';
+import './styles/mobile-layout-fixes.css';
+import './styles/panel-liquid-motion.css';
 
 import { createStore } from './data/store.js';
 import { createAssetLoader } from './simulation/assetLoader.js';
@@ -149,7 +151,7 @@ async function bootstrap() {
 
     boot.onSkip(() => dismissBoot());
 
-    const bootFadeFallback = window.setTimeout(() => dismissBoot(), 12000);
+    const bootFadeFallback = window.setTimeout(() => dismissBoot(), 14000);
 
     if (sim.runBootSequence) {
       sim.runBootSequence({
