@@ -10,7 +10,7 @@ export function initSimulation(deps = {}) {
   var bootFallback=document.getElementById('sceneFallback');
 var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: coarse)'):{matches:false,addEventListener:function(){}};
   var mqReduce=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
-  var mobileMode=!!mqMobile.matches, reduceMotion=!!mqReduce.matches;
+  var mobileMode=!!mqMobile.matches, reduceMotion=!!mqReduce.matches, liteMode=mobileMode||!!deps.lite;
   var wrap=document.getElementById('scene-wrap'), old=document.getElementById('cityCanvas');
   if(!wrap || !old || document.getElementById('v4Canvas')) return null;
   old.__simulatiaUpgraded=true; old.style.opacity='0'; old.style.pointerEvents='none';
@@ -53,19 +53,31 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   var bgCanvas=document.getElementById('v8BackgroundCanvas');
   if(!bgCanvas){bgCanvas=document.createElement('canvas');bgCanvas.id='v8BackgroundCanvas';document.body.insertBefore(bgCanvas,document.body.firstChild);}
 
-  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:!mobileMode,alpha:false,powerPreference:mobileMode?'low-power':'high-performance'});
-  function pixelCap(){return mobileMode?1:(renderScope==='room'?1.2:1.65)}
+  var renderer=null;
+  try{
+    renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:!liteMode,alpha:false,powerPreference:liteMode?'low-power':'high-performance',failIfMajorPerformanceCaveat:false});
+  }catch(err){
+    console.error('[Simulatia] WebGL unavailable',err);
+    if(bootFallback) bootFallback.classList.add('show');
+    return null;
+  }
+  if(!renderer||!renderer.getContext()){
+    console.error('[Simulatia] WebGL context missing');
+    if(bootFallback) bootFallback.classList.add('show');
+    return null;
+  }
+  function pixelCap(){return liteMode?1:(renderScope==='room'?1.2:1.65)}
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,pixelCap()));
-  renderer.shadowMap.enabled=!mobileMode; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled=!liteMode; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   if('outputEncoding' in renderer) renderer.outputEncoding=THREE.sRGBEncoding;
   if('toneMapping' in renderer && THREE.ACESFilmicToneMapping) renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  if('toneMappingExposure' in renderer) renderer.toneMappingExposure=1.03;
-  if('physicallyCorrectLights' in renderer) renderer.physicallyCorrectLights=true;
+  if('toneMappingExposure' in renderer) renderer.toneMappingExposure=liteMode?1:1.03;
+  if('physicallyCorrectLights' in renderer&&!liteMode) renderer.physicallyCorrectLights=true;
   var SCENE_WHITE=0xffffff;
   renderer.setClearColor(SCENE_WHITE,1);
 
   var bgRenderer=null;
-  if(!mobileMode){
+  if(!liteMode){
     bgRenderer=new THREE.WebGLRenderer({canvas:bgCanvas,antialias:false,alpha:false,powerPreference:'low-power'});
     bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
     bgRenderer.setClearColor(SCENE_WHITE,1);
@@ -83,7 +95,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   root.add(universe,city,interior); scene.add(root);
 
   var ambient=new THREE.AmbientLight(0xffffff,.84);
-  var sun=new THREE.DirectionalLight(0xfff2e4,1.2); sun.position.set(80,90,55); sun.castShadow=!mobileMode; sun.shadow.mapSize.set(mobileMode?512:2048,mobileMode?512:2048); sun.shadow.camera.left=-160; sun.shadow.camera.right=160; sun.shadow.camera.top=160; sun.shadow.camera.bottom=-160; sun.shadow.camera.far=360;
+  var sun=new THREE.DirectionalLight(0xfff2e4,1.2); sun.position.set(80,90,55); sun.castShadow=!liteMode; sun.shadow.mapSize.set(liteMode?512:2048,liteMode?512:2048); sun.shadow.camera.left=-160; sun.shadow.camera.right=160; sun.shadow.camera.top=160; sun.shadow.camera.bottom=-160; sun.shadow.camera.far=360;
   var fill=new THREE.DirectionalLight(0xfff6f0,.28); fill.position.set(-55,35,-50);
   var rim=new THREE.PointLight(0xffffff,.72,240,2); rim.position.set(0,34,0);
   scene.add(ambient,sun,fill,rim);
@@ -278,7 +290,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
       ctx.fillStyle='rgba(255,255,255,.08)';
       for(var gy=10;gy<size;gy+=22) for(var gx=6;gx<size;gx+=32) ctx.fillRect(gx,gy,18,10);
     }
-    var tex=new THREE.CanvasTexture(cv); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.anisotropy=8; tex.needsUpdate=true; return tex;
+    var tex=new THREE.CanvasTexture(cv); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.anisotropy=liteMode?2:8; tex.needsUpdate=true; return tex;
   }
   var TEX={
     grass:texCanvas('grass',256,0x7fbd73), road:texCanvas('road',256,0x687789), floor:texCanvas('floor',256,0xe8eef7),
@@ -301,7 +313,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
 
   function makeSky(){
     // Sky sphere — white void fading to soft zenith grey (tilt-shift atmosphere).
-    var skyGeo=new THREE.SphereGeometry(430,48,22);
+    var skyGeo=new THREE.SphereGeometry(430,liteMode?24:48,liteMode?12:22);
     var skyCnt=skyGeo.attributes.position.count;
     var skyColors=new Float32Array(skyCnt*3);
     for(var si=0;si<skyCnt;si++){
@@ -322,6 +334,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     var horizon=new THREE.Mesh(new THREE.RingGeometry(145,210,160),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.06,depthWrite:false,side:THREE.DoubleSide}));
     horizon.rotation.x=-Math.PI/2; horizon.position.y=-2.2; scene.add(horizon);
 
+    if(!liteMode){
     var geo=new THREE.BufferGeometry(), starPos=[], starCol=[];
     for(var si2=0;si2<1100;si2++){
       var rr=220+Math.random()*190, th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1);
@@ -350,6 +363,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
       var ang=Math.random()*Math.PI*2, dist=95+Math.random()*85;
       cg.position.set(Math.cos(ang)*dist,58+Math.random()*22,Math.sin(ang)*dist);
       cg.userData.cloudBaseX=cg.position.x; cg.userData.cloudBaseZ=cg.position.z; cg.userData.cloudPhase=Math.random()*Math.PI*2; cg.userData.cloudDrift=4+Math.random()*8; cg.userData.cloudSpeed=.06+Math.random()*.08; cg.userData.isCloud=true; scene.add(cg); pulses.push(cg);
+    }
     }
   }
   makeSky();
@@ -506,26 +520,30 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
       building(d,{key:'creation',name:'Creation Studio',x:2.4,z:-8.6,w:2.55,d:2.3,h:3.4,windowColor:0xffcda7,emissive:0xff7430,label:false});
     } else if(kind==='harbor'){water(d,-2,-7,r*.9,r*.45,deg(-12)); building(d,{key:'harbor',name:'Harbor City',icon:'ti-building-bridge-2',x:0,z:0,w:3.2,d:2.6,h:9.2,mat:M.b2,windowColor:0xbdeeff,emissive:0x1e8ee9,baseGlow:4.5,rings:2,health:92,agents:33,workflows:12,radius:27}); building(d,{key:'finance',name:'Finance Hub',icon:'ti-building-bank',x:5.6,z:3.6,w:2.45,d:2.15,h:6.8,health:94,radius:19}); building(d,{key:'logistics',name:'Logistics',icon:'ti-truck',x:-6.2,z:2.8,w:3.35,d:2.2,h:3.7,health:89,radius:19}); building(d,{key:'dock',name:'Transit Dock',x:4.2,z:-5,w:3.5,d:1.75,h:2.7,label:false})}
     else {water(d,8,-6,4.4,3.2,deg(8)); building(d,{key:'research',name:'Research Campus',icon:'ti-flask-2',x:0,z:0,w:3.6,d:3.6,h:6.3,round:true,dome:true,windowColor:0xd2baff,emissive:0x7b42ff,baseGlow:4.6,glowMat:M.purple,rings:2,health:98,agents:38,workflows:14,radius:27}); building(d,{key:'simulation-lab',name:'Simulation Lab',icon:'ti-atom',x:-5.6,z:-3.8,w:2.75,d:2.35,h:4.5,windowColor:0xaeeaff,emissive:0x0fa8da,baseGlow:2.9,health:96,radius:19}); building(d,{key:'quantum',name:'Quantum Core',icon:'ti-flask',x:5.4,z:3.8,w:2.35,d:2.35,h:5.8,round:true,windowColor:0xd6c0ff,emissive:0x7844ff,health:98,radius:19})}
-    for(var t=0;t<28;t++){var aa=Math.random()*Math.PI*2, rr=r*(.43+Math.random()*.45); tree(d,Math.cos(aa)*rr,Math.sin(aa)*rr,.68+Math.random()*.45)}
-    for(var gd=0;gd<80;gd++){var ga=Math.random()*Math.PI*2, gr=r*(.18+Math.random()*.76); if(Math.random()>.18)addGrassTuft(d,Math.cos(ga)*gr,Math.sin(ga)*gr,.45+Math.random()*.55); else addPebble(d,Math.cos(ga)*gr,Math.sin(ga)*gr,.65+Math.random()*.65)}
+    for(var t=0,treeN=liteMode?10:28;t<treeN;t++){var aa=Math.random()*Math.PI*2, rr=r*(.43+Math.random()*.45); tree(d,Math.cos(aa)*rr,Math.sin(aa)*rr,.68+Math.random()*.45)}
+    for(var gd=0,grassN=liteMode?18:80;gd<grassN;gd++){var ga=Math.random()*Math.PI*2, gr=r*(.18+Math.random()*.76); if(Math.random()>.18)addGrassTuft(d,Math.cos(ga)*gr,Math.sin(ga)*gr,.45+Math.random()*.55); else addPebble(d,Math.cos(ga)*gr,Math.sin(ga)*gr,.65+Math.random()*.65)}
     focus[key]={key:key,mode:'city',name:name,subtitle:(kind==='hq'?'Primary city':kind==='harbor'?'Transit city':'Research city')+' · Health '+(kind==='harbor'?92:kind==='research'?98:97)+'%',description:kind==='hq'?'The main Simulatia district: command tower, agent tower, power grid, data vault and creation workflows.':kind==='harbor'?'A logistics-heavy city zone with waterways, bridges and finance operations.':'A high-tech campus with research, simulations and experimental agent training.',health:kind==='harbor'?92:kind==='research'?98:97,agents:kind==='harbor'?70:kind==='research'?64:142,workflows:kind==='harbor'?14:kind==='research'?16:18,transit:kind==='harbor'?96:kind==='research'?87:91,active:kind==='harbor'?12:kind==='research'?10:32,focus:new THREE.Vector3(x,5.5,z),radius:kind==='hq'?42:39};
     return d;
   }
   district('hq','Austin · Simulatia HQ',0,0,18,'hq'); district('harbor','Harbor City',50,-8,15,'harbor'); district('research','Quantum Research Campus',-43,23,15,'research');
 
   function rand(seed){var x=Math.sin(seed*999.123)*43758.5453;return x-Math.floor(x)}
-  for(var ix=-4;ix<=4;ix++)for(var iz=-4;iz<=4;iz++){if(Math.abs(ix)<=1&&Math.abs(iz)<=1)continue; var x=ix*18,z=iz*18,s=15.5; road(city,x,z-s/2,s,.5,0); road(city,x,z+s/2,s,.5,0); road(city,x-s/2,z,.5,s,0); road(city,x+s/2,z,.5,s,0); for(var l=0;l<3;l++){var bw=1+rand(ix*31+iz*11+l)*1.4,bd=1+rand(ix*17+iz*23+l)*1.4,bh=1.4+rand(ix*7+iz*19+l)*7.5; var b=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),rand(l+ix)>0.55?M.b1:M.b2); b.position.set(x+(rand(l+ix*3)-.5)*s*.55,bh/2,z+(rand(l+iz*5)-.5)*s*.55); b.castShadow=b.receiveShadow=true; city.add(b)}}
+  var gridLim=liteMode?2:4;
+  for(var ix=-gridLim;ix<=gridLim;ix++)for(var iz=-gridLim;iz<=gridLim;iz++){if(Math.abs(ix)<=1&&Math.abs(iz)<=1)continue; var x=ix*18,z=iz*18,s=15.5; road(city,x,z-s/2,s,.5,0); road(city,x,z+s/2,s,.5,0); road(city,x-s/2,z,.5,s,0); road(city,x+s/2,z,.5,s,0); for(var l=0;l<3;l++){var bw=1+rand(ix*31+iz*11+l)*1.4,bd=1+rand(ix*17+iz*23+l)*1.4,bh=1.4+rand(ix*7+iz*19+l)*7.5; var b=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),rand(l+ix)>0.55?M.b1:M.b2); b.position.set(x+(rand(l+ix*3)-.5)*s*.55,bh/2,z+(rand(l+iz*5)-.5)*s*.55); b.castShadow=b.receiveShadow=true; city.add(b)}}
 
+  if(!liteMode){
   function route(points,mat,n){var curve=new THREE.CatmullRomCurve3(points), tube=new THREE.Mesh(new THREE.TubeGeometry(curve,140,.075,8,false),c(mat)); tube.material.opacity=.38; city.add(tube); for(var i=0;i<n;i++){var p=new THREE.Mesh(new THREE.SphereGeometry(.22,12,8),c(M.transit)); p.userData.curve=curve;p.userData.t=i/n;p.userData.speed=.045+Math.random()*.02;city.add(p);routeDots.push(p)}}
   route([v(5,.35,6),v(18,.55,10),v(35,.45,2),v(50,.35,-8)],M.blue,9); route([v(-3,.35,8),v(-16,.75,18),v(-30,.55,23),v(-43,.35,23)],M.purple,9); route([v(-43,.35,23),v(-18,.9,38),v(15,.8,22),v(50,.35,-8)],M.cyan,7);
   vehicleRoute([v(-12,.28,-5),v(0,.28,-12),v(14,.28,-4),v(8,.28,10),v(-9,.28,8),v(-12,.28,-5)],8,[0x3b6cff,0xffffff,0x1d2635,0xff9f0a]);
   vehicleRoute([v(44,.28,-17),v(57,.28,-12),v(55,.28,2),v(43,.28,.5),v(38,.28,-10),v(44,.28,-17)],6,[0x49c7ff,0xfff4d8,0x32445d]);
   vehicleRoute([v(-52,.28,15),v(-35,.28,14),v(-31,.28,28),v(-46,.28,34),v(-54,.28,24),v(-52,.28,15)],6,[0x8f63ff,0xf7fbff,0x30d158]);
   for(var dr=0;dr<12;dr++) drone([v(0,0,0),v(50,0,-8),v(-43,0,23)][dr%3],13,dr);
+  }
 
   function worldOrb(name,x,z,color,target){
     var g=new THREE.Group();
-    var geo=new THREE.SphereGeometry(5.2,96,48);
+    var orbSeg=liteMode?40:96, orbSeg2=liteMode?20:48;
+    var geo=new THREE.SphereGeometry(5.2,orbSeg,orbSeg2);
     var cnt=geo.attributes.position.count;
     var vColors=new Float32Array(cnt*3);
     var baseC=target==='overview'?new THREE.Color(0x1f78d1):(target==='harbor'?new THREE.Color(0xb55231):new THREE.Color(0x6d7390)), landC=target==='overview'?new THREE.Color(0x3f9f55):(target==='harbor'?new THREE.Color(0x7f3d2b):new THREE.Color(0x8e84b9)), iceC=new THREE.Color(0xeef7ff);
@@ -554,10 +572,12 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     var clouds=new THREE.Mesh(cloudGeo,new THREE.MeshPhongMaterial({map:cTex,alphaMap:cTex,color:0xffffff,transparent:true,opacity:.10,shininess:6,depthWrite:false}));
     g.userData.clouds=clouds; g.add(clouds);
 
+    if(!liteMode){
     var lightPos=[], lightColor=[];
     for(var l=0;l<46;l++){var la=(Math.random()-.5)*Math.PI*.78, lo=Math.random()*Math.PI*2, rr=5.46; lightPos.push(Math.cos(la)*Math.cos(lo)*rr,Math.sin(la)*rr,Math.cos(la)*Math.sin(lo)*rr); lightColor.push(1,.76,.38)}
     var cityLights=new THREE.BufferGeometry(); cityLights.setAttribute('position',new THREE.Float32BufferAttribute(lightPos,3)); cityLights.setAttribute('color',new THREE.Float32BufferAttribute(lightColor,3));
     g.add(new THREE.Points(cityLights,new THREE.PointsMaterial({size:.075,vertexColors:true,transparent:true,opacity:.72,depthWrite:false,sizeAttenuation:true})));
+    }
 
     var ringMat=c(M.blue); ringMat.opacity=.28; var ring=new THREE.Mesh(new THREE.TorusGeometry(7.2,.07,10,160),ringMat); ring.rotation.x=Math.PI/2.6; ring.rotation.z=.28; g.add(ring); pulses.push(ring);
     var ring2Mat=c(M.cyan); ring2Mat.opacity=.12; var ring2=new THREE.Mesh(new THREE.TorusGeometry(8.4,.045,8,128),ring2Mat); ring2.rotation.x=Math.PI/2.2; ring2.rotation.z=-.38; g.add(ring2); pulses.push(ring2);
@@ -631,11 +651,13 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     g.add(shadow,torso,shoulders,hips,neck,headGroup,leftLegGroup,rightLegGroup,leftArmGroup,rightArmGroup,hit);
     g.userData=Object.assign({headGroup:headGroup,leftLegGroup:leftLegGroup,rightLegGroup:rightLegGroup,leftArmGroup:leftArmGroup,rightArmGroup:rightArmGroup,eyes:eyes,blinkSeed:Math.random()*10,bodyParts:bodyParts,hit:hit},o);
     hit.userData.agentGroup=g;
-    if(o.assetId) attachAvatarModel(g,o.assetId,o.modelIndex||0);
+    if(o.assetId&&!liteMode) attachAvatarModel(g,o.assetId,o.modelIndex||0);
     return g;
   }
   const ctx = { THREE, interior, M, pickable, assetLoader, agents, labelData, createPerson: person };
-  function agentSpot(home, spread, minDist){var pos=v(home.x, .16, home.z); for(var tries=0; tries<30; tries++){pos.set(home.x+(Math.random()-.5)*spread,.16,home.z+(Math.random()-.5)*spread); var ok=true; for(var ai=0; ai<agents.length; ai++){ if(agents[ai].position.distanceTo(pos)<minDist){ok=false; break;} } if(ok) break;} return pos;} ['Atlas','Sage','Ava','Ledger','Scout','Pulse','Orion','Comms','Ray','Mira','Bolt','Iris','Kai','Nia','Coda','Echo'].forEach(function(n,i){var home=[v(0,0,0),v(50,0,-8),v(-43,0,23)][i%3], p=person({key:'city-agent-'+i,name:n,role:['Strategy Agent','Research Analyst','Finance Manager','Ops Director'][i%4],cloth:[M.cloth,M.dark,new THREE.MeshPhongMaterial({color:0x8f63ff}),new THREE.MeshPhongMaterial({color:0x278a65})][i%4],assetId:['adultMale','doctor','adultMale','painter'][i%4],modelIndex:i}); p.scale.set(.72,.72,.72); var start=agentSpot(home,13,1.3); p.position.copy(start); p.userData.home=home;p.userData.target=agentSpot(home,16,1.8);p.userData.speed=.035+Math.random()*.03;p.userData.phase=Math.random()*Math.PI*2; city.add(p); agents.push(p)});
+  function agentSpot(home, spread, minDist){var pos=v(home.x, .16, home.z); for(var tries=0; tries<30; tries++){pos.set(home.x+(Math.random()-.5)*spread,.16,home.z+(Math.random()-.5)*spread); var ok=true; for(var ai=0; ai<agents.length; ai++){ if(agents[ai].position.distanceTo(pos)<minDist){ok=false; break;} } if(ok) break;} return pos;}
+  var cityAgentNames=liteMode?['Atlas','Sage','Ava','Ledger']:['Atlas','Sage','Ava','Ledger','Scout','Pulse','Orion','Comms','Ray','Mira','Bolt','Iris','Kai','Nia','Coda','Echo'];
+  cityAgentNames.forEach(function(n,i){var home=[v(0,0,0),v(50,0,-8),v(-43,0,23)][i%3], po={key:'city-agent-'+i,name:n,role:['Strategy Agent','Research Analyst','Finance Manager','Ops Director'][i%4],cloth:[M.cloth,M.dark,new THREE.MeshPhongMaterial({color:0x8f63ff}),new THREE.MeshPhongMaterial({color:0x278a65})][i%4]}; if(!liteMode){po.assetId=['adultMale','doctor','adultMale','painter'][i%4];po.modelIndex=i;} var p=person(po); p.scale.set(.72,.72,.72); var start=agentSpot(home,13,1.3); p.position.copy(start); p.userData.home=home;p.userData.target=agentSpot(home,16,1.8);p.userData.speed=.035+Math.random()*.03;p.userData.phase=Math.random()*Math.PI*2; city.add(p); agents.push(p)});
 
   interior.visible = false;
   var roomNetwork=buildRoomLayer(ctx);

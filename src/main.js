@@ -27,11 +27,12 @@ collapsePanelsAtLaunch();
 
 const BOOT_TOUR_MS = 4800;
 const BOOT_MIN_MS = 5500;
+const MOBILE_BOOT_MIN_MS = 2200;
 const isCoarseMobile =
   typeof window !== 'undefined' &&
   window.matchMedia?.('(max-width: 760px), (pointer: coarse)')?.matches;
-const BOOT_MAX_MS = 24000;
-const FIRST_FRAME_TIMEOUT_MS = 10000;
+const BOOT_MAX_MS = isCoarseMobile ? 18000 : 24000;
+const FIRST_FRAME_TIMEOUT_MS = isCoarseMobile ? 12000 : 10000;
 const BOOT_DONE_KEY = 'simulatia_boot_complete';
 
 function bootSessionComplete() {
@@ -139,14 +140,16 @@ async function bootstrap() {
   let sim = null;
   const bootStartedAt = performance.now();
 
-  const finishBoot = async () => {
+  const finishBoot = async (bootOk = true) => {
     if (bootFinished) return;
     bootFinished = true;
-    window.__simulatiaBootstrapped = true;
-    try {
-      sessionStorage.setItem(BOOT_DONE_KEY, '1');
-    } catch {
-      /* ignore */
+    if (bootOk) {
+      window.__simulatiaBootstrapped = true;
+      try {
+        sessionStorage.setItem(BOOT_DONE_KEY, '1');
+      } catch {
+        /* ignore */
+      }
     }
     if (bootFadeFallback) {
       clearTimeout(bootFadeFallback);
@@ -168,11 +171,11 @@ async function bootstrap() {
     }
   };
 
-  boot.onSkip(() => finishBoot());
+  boot.onSkip(() => finishBoot(!!sim));
 
   bootFadeFallback = window.setTimeout(() => {
     console.warn('[Simulatia] boot safety timeout');
-    finishBoot();
+    finishBoot(!!sim);
   }, BOOT_MAX_MS);
 
   try {
@@ -191,17 +194,17 @@ async function bootstrap() {
       resolveFirstFrame = resolve;
     });
 
-    if (!skipBootUI) boot.setProgress(22, 'Generating your world');
+    const desktopPreload = !isCoarseMobile
+      ? assetLoader
+          .preloadCatalog((frac) => {
+            if (!skipBootUI) boot.setProgress(22 + frac * 28, 'Generating your world');
+          })
+          .catch((err) => {
+            console.warn('[Simulatia] asset preload partial failure', err);
+          })
+      : null;
 
-    const preloadPromise = assetLoader
-      .preloadCatalog((frac) => {
-        if (!skipBootUI) boot.setProgress(22 + frac * 28, 'Generating your world');
-      })
-      .catch((err) => {
-        console.warn('[Simulatia] asset preload partial failure', err);
-      });
-
-    if (!skipBootUI) boot.setProgress(54, 'Generating Agentopia');
+    if (!skipBootUI) boot.setProgress(isCoarseMobile ? 22 : 54, 'Generating Agentopia');
     await yieldToMain();
 
     let simResult = null;
@@ -210,6 +213,7 @@ async function bootstrap() {
         store,
         assetLoader,
         THREE: runtime.THREE,
+        lite: isCoarseMobile,
         skipAutoIntro: true,
         onFirstFrame: () => {
           if (firstFrameSeen) return;
@@ -222,14 +226,30 @@ async function bootstrap() {
       console.error('[Simulatia] initSimulation failed', err);
     }
 
-    await preloadPromise;
     sim = simResult;
 
     if (!sim) {
       document.getElementById('sceneFallback')?.classList.add('show');
       boot.setProgress(100, 'Could not start simulation');
-      await finishBoot();
+      await finishBoot(false);
       return;
+    }
+
+    if (!isCoarseMobile) {
+      await desktopPreload;
+    } else {
+      void assetLoader
+        .preloadCatalog(
+          (frac) => {
+            if (!skipBootUI && !bootFinished) {
+              boot.setProgress(72 + frac * 18, 'Loading assets');
+            }
+          },
+          { concurrency: 1, limit: 8 }
+        )
+        .catch((err) => {
+          console.warn('[Simulatia] mobile asset preload partial failure', err);
+        });
     }
 
     if (!skipBootUI) boot.setProgress(68, 'Rendering city view');
@@ -240,7 +260,7 @@ async function bootstrap() {
     }
 
     const bootTourPromise =
-      !skipBootUI && sim.runBootSequence
+      !skipBootUI && !isCoarseMobile && sim.runBootSequence
       ? new Promise((resolve) => {
           let settled = false;
           const done = () => {
@@ -274,20 +294,27 @@ async function bootstrap() {
     await Promise.all([bootTourPromise, uiInitPromise]);
 
     const elapsed = performance.now() - bootStartedAt;
-    const bootMin = isCoarseMobile ? 4200 : BOOT_MIN_MS;
+    const bootMin = isCoarseMobile ? MOBILE_BOOT_MIN_MS : BOOT_MIN_MS;
     if (elapsed < bootMin) await wait(bootMin - elapsed);
 
     if (!skipBootUI) boot.setProgress(100, 'Ready');
-    await finishBoot();
+    await finishBoot(true);
 
     window.__simulatia = { ...sim, store, assetLoader, boot };
   } catch (err) {
     console.error('[Simulatia] bootstrap failed', err);
     document.getElementById('sceneFallback')?.classList.add('show');
     boot.setProgress(100, 'Something went wrong');
-    await finishBoot();
+    await finishBoot(false);
   }
 }
+
+window.addEventListener('error', (event) => {
+  console.error('[Simulatia] uncaught error', event.error || event.message);
+});
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[Simulatia] unhandled rejection', event.reason);
+});
 
 window.addEventListener('pageshow', (event) => {
   if (event.persisted && bootSessionComplete()) stripBootChrome();

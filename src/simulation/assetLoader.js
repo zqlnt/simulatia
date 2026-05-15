@@ -283,13 +283,15 @@ export function createAssetLoader(THREE) {
   }
 
   /** Preload catalog — bounded concurrency to avoid network/UI stalls. */
-  function preloadCatalog(onProgress) {
-    const entries = [...assetManifest];
+  function preloadCatalog(onProgress, opts = {}) {
+    const all = [...assetManifest];
+    const entries =
+      typeof opts.limit === 'number' ? all.slice(0, Math.max(0, opts.limit)) : all;
     if (!entries.length) return Promise.resolve();
 
     const total = entries.length;
     let completed = 0;
-    const concurrency = Math.min(3, total);
+    const concurrency = Math.min(opts.concurrency ?? 3, total);
 
     const report = (entry) => {
       completed += 1;
