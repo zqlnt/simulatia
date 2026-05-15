@@ -5,10 +5,10 @@
 @media (max-width: 900px) {
   :root {
     --mobile-top-controls: calc(var(--ui-safe-top) + var(--ui-topbar-band) + 10px);
-    --mobile-stack-gap: 12px;
-    --mobile-prompt-band: 48px;
-    --mobile-nav-band: 44px;
-    --mobile-depth-band: 50px;
+    --mobile-stack-gap: 14px;
+    --mobile-prompt-band: 56px;
+    --mobile-nav-band: 48px;
+    --mobile-depth-band: 56px;
     --mobile-bottom-base: calc(var(--ui-safe-bottom) + 10px);
     --mobile-bottom-stack: calc(
       var(--mobile-bottom-base) + var(--mobile-prompt-band) + var(--mobile-stack-gap) +
@@ -20,7 +20,7 @@
   }
 
   body.panel-bottom-collapsed {
-    --mobile-prompt-band: 48px;
+    --mobile-prompt-band: 56px;
     --ui-command-band: calc(var(--mobile-prompt-band) + var(--mobile-stack-gap));
   }
 
@@ -147,7 +147,7 @@
   }
 
   /* Prompt chip — centred on bottom */
-  .command-center.panel--collapsed {
+  html.sim-mobile body.sim-ready .command-center.panel--collapsed {
     left: 50% !important;
     right: auto !important;
     top: auto !important;
@@ -156,6 +156,7 @@
     transform: translateX(-50%) !important;
     margin: 0 !important;
     z-index: 45 !important;
+    pointer-events: auto !important;
   }
 
   .command-center.panel--collapsed .panel-mini-bar {
@@ -174,10 +175,12 @@
     ) !important;
     width: max-content !important;
     max-width: min(calc(100vw - 24px), 320px) !important;
+    min-height: var(--mobile-nav-band) !important;
+    box-sizing: border-box !important;
     padding: 6px 8px !important;
     gap: 6px !important;
     justify-content: center !important;
-    z-index: 22 !important;
+    z-index: 23 !important;
   }
 
   /* Worlds / City / Building / Room / Agent — above nav */

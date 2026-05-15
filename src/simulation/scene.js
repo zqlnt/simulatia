@@ -658,9 +658,37 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     selectedHalo.visible=mode!=='room'||(d&&d.mode==='agent');
   }
 
+  var pendingEnterRoom=null, layerSwitchLock=false, layerSwitchUnlockTimer=null;
+
+  function cancelPendingFocus(){
+    if(pendingEnterRoom){clearTimeout(pendingEnterRoom); pendingEnterRoom=null;}
+    if(focusTo._blurTimer){clearTimeout(focusTo._blurTimer); focusTo._blurTimer=null;}
+  }
+  function lockLayerSwitch(ms){
+    layerSwitchLock=true;
+    if(layerSwitchUnlockTimer)clearTimeout(layerSwitchUnlockTimer);
+    layerSwitchUnlockTimer=setTimeout(function(){layerSwitchLock=false; layerSwitchUnlockTimer=null;},ms||300);
+  }
+  function resolveV4LayerKey(layer){
+    if(layer==='worlds') return 'worlds';
+    if(layer==='city') return 'overview';
+    if(layer==='building'){
+      var cur=focus[selected];
+      if(cur&&cur.mode==='building'&&cur.key!=='overview') return cur.key;
+      return 'hq';
+    }
+    if(layer==='room'){
+      var rd=focus[selected];
+      if(rd&&rd.mode==='room') return rd.key;
+      return 'hq-room';
+    }
+    return null;
+  }
+
   // v12: cinematic blur is now strictly transitional, never a persistent room effect.
   function finishViewportTransition(){
     clearTimeout(focusTo._blurTimer);
+    focusTo._blurTimer=null;
     canvas.classList.remove('transitioning');
     wrap.classList.remove('is-transitioning');
     if(cinema)cinema.classList.remove('show');
@@ -782,7 +810,17 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   }
   function updatePanel(d){if(nodeTitle)nodeTitle.textContent=d.name;if(nodeSub)nodeSub.textContent=d.subtitle;if(nodeDesc)nodeDesc.textContent=d.description;if(nodeBadge){nodeBadge.textContent=d.health>=96?'Excellent':d.health>=91?'Good':'Watch';nodeBadge.style.color=d.health>=96?'var(--green)':d.health>=91?'var(--orange)':'var(--red)'} updateBreadcrumbs(d); updateNavRows(); if(topHealth)topHealth.textContent=d.health+'%';if(focusName)focusName.textContent=d.name;if(zoomState)zoomState.textContent=d.mode==='worlds'?'Worlds':d.mode==='room'?'Room':d.mode==='agent'?'Agent':d.radius>=70?'City':d.radius>=34?'District':'Building'; var a=document.getElementById('stat-agents'); if(a)a.textContent=d.agents; var w=document.getElementById('stat-workflows'); if(w)w.textContent=d.workflows; var tr=document.getElementById('stat-transit'); if(tr)tr.textContent=d.transit+'%';}
   function focusTo(key,silent){
-    var d=focus[key]||focus.overview, prev=selected, wasMode=mode;
+    cancelPendingFocus();
+    if(!key) key='overview';
+    var d=focus[key];
+    if(!d){
+      if(key==='city'){key='overview'; d=focus.overview;}
+      else if(key==='building'){key='hq'; d=focus.hq;}
+      else if(key==='room'){key='hq-room'; d=focus['hq-room'];}
+      else d=focus.overview;
+    }
+    if(!d) return;
+    var prev=selected, wasMode=mode;
     if(prev!==key){
       var prevDef=focus[prev];
       if(prevDef&&prevDef.mode==='agent') leaveAgentFocus();
@@ -814,20 +852,28 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     }
     if(!silent)announce((d.mode==='agent'?'Inspecting ':d.mode==='room'?'Entering ':'Transitioning to ')+d.name);
     if(store){
-      store.setState({
-        currentLayer: d.mode==='worlds'?'world':d.mode==='agent'?'agent':d.mode||'city',
-        currentRoom: d.renderMode==='room'?((d.mode==='room'?key:null)||d.parentKey||null):store.getState().currentRoom,
-        selectedAgent: d.mode==='agent'?key:null,
-      });
+      try{
+        store.setState({
+          currentLayer: d.mode==='worlds'?'world':d.mode==='agent'?'agent':d.mode||'city',
+          currentRoom: d.renderMode==='room'?((d.mode==='room'?key:null)||d.parentKey||null):store.getState().currentRoom,
+          selectedAgent: d.mode==='agent'?key:null,
+        });
+      }catch(err){console.warn('[Simulatia] store sync skipped',err);}
     }
   }
   function enterRoom(fromKey){
+    cancelPendingFocus();
     var source=focus[fromKey]||focus[selected]||focus.hq;
+    var roomKey=(source&&source.mode==='room'&&source.key)?source.key:'hq-room';
+    if(!focus[roomKey]) roomKey='hq-room';
     if(source&&source.focus){
       S.targetFocus.copy(source.focus); S.targetRadius=Math.max(8,Math.min(source.radius||18,20)); S.targetPhi=.62; S.last=performance.now();
     }
     beginViewportTransition('enter',reduceMotion?120:520);
-    setTimeout(function(){focusTo('hq-room');},reduceMotion?35:240);
+    pendingEnterRoom=setTimeout(function(){
+      pendingEnterRoom=null;
+      focusTo(roomKey,true);
+    },reduceMotion?35:240);
   }
   function goUp(){
     var d=focus[selected]||focus.overview, parent=d.parentKey;
@@ -958,7 +1004,23 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     later(9350,function(){setIntroStatus('Simulation ready for interaction.',100); later(850,stopGuidedIntro);});
   }
 
-  depth.querySelectorAll('button').forEach(function(b){b.onclick=function(){var m=b.getAttribute('data-v4'); if(m==='agent'){if(focus[selected]&&focus[selected].mode==='agent')focusTo(selected); else announce('Click an avatar to enter Agent view'); return;} if(m==='room'){enterRoom(selected);return;} if(m==='building'){focusTo((focus[selected]&&focus[selected].mode==='room')?'hq':(selected==='overview'?'central-hub':selected));return;} focusTo(m==='city'?'overview':m)}});
+  depth.querySelectorAll('button').forEach(function(b){b.onclick=function(){
+    if(layerSwitchLock&&!introRunning) return;
+    var m=b.getAttribute('data-v4');
+    if(m==='agent'){
+      if(focus[selected]&&focus[selected].mode==='agent') focusTo(selected);
+      else announce('Click an avatar to enter Agent view');
+      return;
+    }
+    var target=resolveV4LayerKey(m==='city'?'city':m);
+    if(!target) return;
+    lockLayerSwitch(m==='room'?420:320);
+    if(m==='room'&&target==='hq-room'&&mode!=='room'){
+      enterRoom(selected==='overview'||selected==='worlds'?'hq':selected);
+      return;
+    }
+    focusTo(target);
+  }});
   document.querySelectorAll('[data-focus]').forEach(function(el){el.addEventListener('click',function(){focusTo(el.getAttribute('data-focus'))})});
   var backBtn=document.getElementById('v11Back'), upBtn=document.getElementById('v11Up');
   if(backBtn)backBtn.onclick=goBack; if(upBtn)upBtn.onclick=goUp;
@@ -1042,13 +1104,11 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     function prog(pct,label){if(onProgress)onProgress(pct,label);}
     introRunning=true; introTimers.forEach(clearTimeout); introTimers=[]; navStack=[]; S.auto=false; comm.classList.remove('show');
     wrap.classList.add('guided-intro-running'); if(guidedIntro)guidedIntro.classList.add('hide');
-    prog(58,'Generating worlds…'); focusTo('worlds',true); beginViewportTransition('shift',360);
-    later(700,function(){prog(64,'Building city…'); focusTo('overview');});
-    later(1600,function(){prog(72,'Placing headquarters…'); focusTo('hq');});
-    later(2600,function(){prog(80,'Loading rooms…'); enterRoom('hq');});
-    later(3600,function(){prog(86,'Spawning agents…'); focusTo('hq-room');});
-    later(4800,function(){prog(92,'Returning to city view…'); focusTo('hq');});
-    later(5600,function(){
+    prog(52,'World atlas…'); focusTo('worlds',true); beginViewportTransition('shift',360);
+    later(900,function(){prog(62,'City layer…'); focusTo('overview',true);});
+    later(2100,function(){prog(74,'Building layer…'); focusTo('hq',true);});
+    later(3400,function(){prog(86,'Room layer…'); focusTo('hq-room',true);});
+    later(4800,function(){
       prog(96,'Ready — explore freely');
       introRunning=false;
       wrap.classList.remove('guided-intro-running');

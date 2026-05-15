@@ -292,13 +292,11 @@ export function initChrome() {
     setCollapsed(id, !state[id]);
   }
 
-  const mobile = window.matchMedia('(max-width: 900px)');
-  if (mobile.matches) {
-    if (state.sidebar == null) state.sidebar = true;
-    if (state.inspector == null) state.inspector = false;
-  } else if (state.inspector == null) {
-    state.inspector = false;
-  }
+  // Each page load: all panels start minimized so the scene is unobstructed.
+  PANELS.forEach((p) => {
+    state[p.id] = true;
+  });
+  saveState(state);
 
   PANELS.forEach((p) => {
     const el = document.querySelector(p.selector);
@@ -312,8 +310,7 @@ export function initChrome() {
   });
 
   all.forEach((p) => {
-    const startCollapsed = state[p.id] ?? false;
-    if (startCollapsed) setCollapsed(p.id, true);
+    if (state[p.id]) setCollapsed(p.id, true);
   });
   syncShellInsets();
 

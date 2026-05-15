@@ -69,9 +69,10 @@ html[data-theme="dark"] .v11-map-coach{background:rgba(17,22,36,.62);border-colo
   .inspector-head{padding:12px 14px 9px!important}.inspector-head h2{font-size:15px}.tabs{display:none!important}.inspector-body{padding:10px 14px 14px!important;gap:9px}.copy{font-size:11px;line-height:1.45}.stat-grid{grid-template-columns:repeat(4,1fr);gap:6px}.stat{padding:8px;border-radius:15px}.stat b{font-size:15px}.row,.workflow{display:none!important}
   .segmented{top:126px!important}.segmented button{height:30px;padding:0 11px}
   .floating-status,.mini-stack,.v7-sim-stats,.v6-realism-badge,.scale-hint{display:none!important}
-  .v4-depth{left:50%!important;bottom:calc(36dvh + 24px)!important;transform:translateX(-50%)!important;max-width:calc(100vw - 20px);overflow:auto;padding:6px!important}
+  /* Bottom HUD stack — mobile-layout-fixes.css when html.sim-mobile */
+  html:not(.sim-mobile) .v4-depth{left:50%!important;bottom:calc(36dvh + 24px)!important;transform:translateX(-50%)!important;max-width:calc(100vw - 20px);overflow:auto;padding:6px!important}
   html.sim-mobile #scene-wrap .v4-depth button{min-height:38px!important;height:38px!important;padding:0 10px!important;font-size:11px!important}
-  .v11-nav-controls{left:10px!important;right:10px!important;bottom:calc(36dvh + 68px)!important;justify-content:center;border-radius:22px!important}
+  html:not(.sim-mobile) .v11-nav-controls{left:10px!important;right:10px!important;bottom:calc(36dvh + 68px)!important;justify-content:center;border-radius:22px!important}
   .v11-nav-controls button span{display:none}.v11-nav-controls button{width:36px;justify-content:center;padding:0}.v11-nav-controls strong{font-size:10px}
   .v11-map-coach{top:164px!important;width:calc(100vw - 28px);justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #v4Labels .label-card{padding:6px 8px!important;border-radius:13px!important;max-width:148px;overflow:hidden}
