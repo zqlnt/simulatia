@@ -259,3 +259,42 @@ body:not(.panel-liquid-transition) #scene-wrap #v4Canvas {
     filter: none !important;
   }
 }
+
+/* Boot panel — final override: translucent glass, no refraction/chromatic edges */
+.boot-shell .boot-glass,
+.boot-shell .boot-glass.liquid-soft {
+  backdrop-filter: blur(12px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.12) !important;
+  filter: none !important;
+  background: rgba(255, 255, 255, 0.09) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow:
+    0 12px 40px rgba(20, 30, 50, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36) !important;
+}
+
+html[data-theme='dark'] .boot-shell .boot-glass,
+html[data-theme='dark'] .boot-shell .boot-glass.liquid-soft {
+  background: rgba(6, 6, 8, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.boot-shell .boot-glass::before,
+.boot-shell .boot-glass::after,
+.boot-shell .boot-glass.liquid-soft::before,
+.boot-shell .boot-glass.liquid-soft::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@supports (backdrop-filter: url('#panel-refraction')) {
+  .boot-shell .boot-glass,
+  .boot-shell .boot-glass.liquid-soft {
+    backdrop-filter: blur(12px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(1.12) !important;
+  }
+}

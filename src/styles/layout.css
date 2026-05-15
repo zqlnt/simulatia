@@ -1,7 +1,8 @@
 /* v4 Three.js-only upgrade: keeps UI, replaces the 3D viewport with richer worlds/city/building/room scene */
 #v4Canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;z-index:1;transition:filter .42s cubic-bezier(.32,.72,0,1)}
 #v4Canvas.dragging{cursor:grabbing}
-#v4Canvas.transitioning{filter:blur(7px) brightness(.95)}
+#v4Canvas.transitioning{filter:blur(4px) brightness(.98)}
+.agent-solo-mode #v4Canvas.transitioning,.room-mode.agent-solo-mode #v4Canvas.transitioning{filter:none!important}
 #v4Labels{position:absolute;inset:0;z-index:7;pointer-events:none}
 #v4Labels .label{position:absolute;transform:translate(-50%,-100%);pointer-events:auto}
 #v4Labels .label-card{border-radius:17px;display:flex;align-items:center;gap:7px;padding:8px 10px;white-space:nowrap;background:rgba(255,255,255,.68);backdrop-filter:blur(32px) saturate(1.5);-webkit-backdrop-filter:blur(32px) saturate(1.5);box-shadow:0 12px 34px rgba(40,55,95,.14),inset 0 1px 0 rgba(255,255,255,.75);cursor:pointer;border:1px solid var(--edge)}
@@ -20,8 +21,9 @@ html[data-theme="dark"] .v4-depth{background:rgba(17,22,36,.68);border-color:rgb
 .v4-depth button{border:0;background:transparent;color:var(--muted);font:760 11px/1.2 inherit;border-radius:999px;padding:0 10px;min-height:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .v4-depth button.active{background:rgba(255,255,255,.72);color:var(--foreground);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
 html[data-theme="dark"] .v4-depth button.active{background:rgba(255,255,255,.12)}
-.v4-hint{position:absolute;left:0;right:0;top:auto;bottom:calc(var(--ui-safe-bottom) + 120px);width:fit-content;max-width:min(92vw,720px);margin-inline:auto;text-align:center;z-index:8;padding:9px 12px;border-radius:999px;font-size:11px;color:var(--muted);opacity:0;pointer-events:none;background:rgba(255,255,255,.48);border:1px solid rgba(255,255,255,.58);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);transition:opacity .3s var(--ease-ios), transform .3s var(--ease-ios)}
+.v4-hint{position:absolute;left:0;right:0;top:auto;bottom:calc(var(--ui-safe-bottom) + 120px);width:fit-content;max-width:min(92vw,720px);margin-inline:auto;text-align:center;z-index:8;padding:9px 12px;border-radius:999px;font-size:11px;color:var(--muted);opacity:0;pointer-events:none;background:rgba(255,255,255,.48);border:1px solid rgba(255,255,255,.58);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);transition:opacity .22s ease, transform .22s ease}
 .v4-hint.show{opacity:1;transform:none}
+.agent-solo-mode .v4-hint,.agent-solo-mode .v4-hint.show{opacity:0!important;visibility:hidden!important}
 html[data-theme="dark"] .v4-hint{background:rgba(17,22,36,.68);border-color:rgba(255,255,255,.1)}
 /* v8 background glass pass: mirror the Three.js world behind every panel without changing interactions */
 body{background:transparent}
@@ -116,7 +118,7 @@ html[data-theme="dark"] .scene-wrap::after{
 #v4Canvas{border-radius:inherit;}
 .v4-depth button[data-v4="agent"]{color:var(--primary);}
 .v4-depth button[data-v4="agent"].active{background:rgba(59,108,255,.16);color:var(--primary);}
-.v10-agent-focus{position:absolute;left:0;right:0;top:auto;bottom:calc(var(--ui-safe-bottom) + 120px);width:fit-content;max-width:min(92vw,720px);margin-inline:auto;text-align:center;z-index:8;padding:8px 11px;border-radius:999px;font-size:11px;color:var(--foreground-2);pointer-events:none;background:rgba(255,255,255,.36);border:1px solid rgba(255,255,255,.42);backdrop-filter:blur(28px) saturate(1.45);-webkit-backdrop-filter:blur(28px) saturate(1.45);opacity:0;transition:opacity .28s var(--ease-ios),transform .28s var(--ease-ios);}
+.v10-agent-focus{position:absolute;left:0;right:0;top:auto;bottom:calc(var(--ui-safe-bottom) + 120px);width:fit-content;max-width:min(92vw,720px);margin-inline:auto;text-align:center;z-index:8;padding:8px 11px;border-radius:999px;font-size:11px;color:var(--foreground-2);pointer-events:none;background:rgba(255,255,255,.36);border:1px solid rgba(255,255,255,.42);backdrop-filter:blur(28px) saturate(1.45);-webkit-backdrop-filter:blur(28px) saturate(1.45);opacity:0;transition:opacity .2s ease,transform .2s ease;}
 .v10-agent-focus.show{opacity:1;transform:none;}
 html[data-theme="dark"] .v10-agent-focus{background:rgba(17,22,36,.52);border-color:rgba(255,255,255,.10);}
 /* v13 guided loading + isometric interior pass */
@@ -137,7 +139,23 @@ html[data-theme="dark"] .v13-guided-intro{background:linear-gradient(142deg,rgba
 html[data-theme="dark"] .v13-guided-skip,html[data-theme="dark"] .v13-guided-orb{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.10)}
 .guided-intro-running .v11-nav-controls,.guided-intro-running .v4-depth{opacity:.62;transform:translateY(4px);pointer-events:none}
 .guided-intro-running #v4Labels .label-card{filter:saturate(.82)}
-.room-mode #v4Canvas{filter:none!important}
+#scene-wrap.room-mode #v4Canvas,
+#scene-wrap.agent-solo-mode #v4Canvas,
+#scene-wrap.room-mode #v4Canvas.transitioning,
+#scene-wrap.agent-solo-mode #v4Canvas.transitioning,
+#scene-wrap.room-mode.agent-solo-mode #v4Canvas,
+#scene-wrap.room-mode.agent-solo-mode #v4Canvas.transitioning {
+  filter: none !important;
+}
+#scene-wrap.room-mode::after,
+#scene-wrap.agent-solo-mode::after,
+#scene-wrap.room-mode.agent-solo-mode::after {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 @media (max-width:760px){
   .v13-guided-intro{bottom:calc(var(--mobile-sheet-height) + 56px)!important;left:10px!important;right:10px!important;width:auto!important;transform:none!important;border-radius:24px}.v13-guided-intro.hide{transform:translateY(12px)!important}
   .guided-intro-running .v11-nav-controls,.guided-intro-running .v4-depth{opacity:.36!important}

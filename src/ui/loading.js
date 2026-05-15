@@ -1,20 +1,22 @@
 /**
- * Premium boot shell — staged progress, scene preview, smooth creep during long loads.
+ * Boot shell — CSS-only loader visual, blurred city preview, single stable exit.
  */
 
-import { createBootOrbit } from './bootOrbit.js';
+import { createBootVisual } from './bootVisual.js';
+
+const BOOT_DONE_KEY = 'simulatia_boot_complete';
 
 const STAGES = [
   { until: 14, label: 'Preparing interface' },
-  { until: 36, label: 'Generating worlds' },
-  { until: 52, label: 'Building cities' },
-  { until: 68, label: 'Placing buildings' },
+  { until: 32, label: 'Generating your world' },
+  { until: 52, label: 'Generating Agentopia' },
+  { until: 68, label: 'Building cities' },
   { until: 84, label: 'Loading rooms & agents' },
   { until: 100, label: 'Finalizing experience' },
 ];
 
-const MIN_PREVIEW_BEFORE_FADE_MS = 2200;
-const REVEAL_SHARPEN_MS = 900;
+const MIN_PREVIEW_BEFORE_FADE_MS = 1400;
+const REVEAL_MS = 700;
 
 function stageLabel(pct) {
   for (let i = 0; i < STAGES.length; i += 1) {
@@ -29,19 +31,65 @@ function wait(ms) {
   });
 }
 
-function waitFrames(count = 2) {
-  return new Promise((resolve) => {
-    let n = 0;
-    const step = () => {
-      n += 1;
-      if (n >= count) resolve();
-      else requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  });
+function bootAlreadyComplete() {
+  if (window.__simulatiaBootstrapped) return true;
+  try {
+    return sessionStorage.getItem(BOOT_DONE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markBootComplete() {
+  window.__simulatiaBootstrapped = true;
+  try {
+    sessionStorage.setItem(BOOT_DONE_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+function stripBootShellDom() {
+  document.body.classList.remove(
+    'sim-booting',
+    'boot-blur-mid',
+    'boot-blur-heavy',
+    'boot-scene-live',
+    'boot-scene-preview',
+    'sim-revealing',
+    'boot-reveal-sharp'
+  );
+  document.body.classList.add('sim-ready');
+  const shell = document.getElementById('boot-shell');
+  shell?.classList.add('is-done');
+  shell?.setAttribute('aria-busy', 'false');
+  shell?.remove();
+}
+
+function createNoopBootShell() {
+  return {
+    start() {
+      stripBootShellDom();
+    },
+    setProgress() {},
+    markScenePreview() {},
+    startProgressCreep() {},
+    stopProgressCreep() {},
+    onSkip() {},
+    async fadeOut() {
+      stripBootShellDom();
+    },
+    finish: async () => {
+      stripBootShellDom();
+    },
+    isFinished() {
+      return true;
+    },
+  };
 }
 
 export function createBootShell() {
+  if (bootAlreadyComplete()) return createNoopBootShell();
   const shell = document.getElementById('boot-shell');
   const statusEl = document.getElementById('boot-status');
   const orbitHost = document.getElementById('boot-orbit');
@@ -51,63 +99,65 @@ export function createBootShell() {
   const progressPct = document.getElementById('boot-progress-pct');
 
   let finished = false;
+  let fading = false;
   let onSkip = null;
-  let onScenePreview = null;
   let targetProgress = 0;
   let displayProgress = 0;
-  let orbit = null;
-  let rafId = 0;
-  let creepRaf = 0;
-  let creepStart = 0;
+  let visual = null;
+  let blurPhase = '';
+  let progressTimer = null;
+  let creepTimer = null;
   let scenePreviewAt = 0;
   let scenePreviewSeen = false;
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
   function paintProgress() {
     const shown = Math.round(displayProgress);
-    orbit?.setProgress(displayProgress);
+    visual?.setProgress(displayProgress);
     if (progressFill) progressFill.style.width = `${displayProgress}%`;
     if (progressPct) progressPct.textContent = `${shown}%`;
   }
 
-  function tickProgress() {
-    const delta = targetProgress - displayProgress;
-    if (Math.abs(delta) < 0.25) {
-      displayProgress = targetProgress;
-    } else {
-      const step = reducedMotion ? 0.45 : 0.12;
-      displayProgress += delta * step;
+  function stopTimers() {
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      progressTimer = null;
     }
-    paintProgress();
-    if (!finished && (Math.abs(targetProgress - displayProgress) > 0.15 || targetProgress < 100)) {
-      rafId = requestAnimationFrame(tickProgress);
+    if (creepTimer) {
+      clearInterval(creepTimer);
+      creepTimer = null;
     }
+  }
+
+  function startProgressLoop() {
+    if (progressTimer || finished) return;
+    progressTimer = setInterval(() => {
+      if (finished) return;
+      const delta = targetProgress - displayProgress;
+      if (Math.abs(delta) < 0.35) {
+        displayProgress = targetProgress;
+      } else {
+        displayProgress += delta * (reducedMotion ? 0.32 : 0.11);
+      }
+      paintProgress();
+    }, reducedMotion ? 48 : 32);
   }
 
   function startProgressCreep() {
-    if (reducedMotion || creepRaf) return;
-    creepStart = performance.now();
-
-    const creep = () => {
+    if (reducedMotion || creepTimer || finished) return;
+    const started = performance.now();
+    creepTimer = setInterval(() => {
       if (finished) return;
-      const elapsed = performance.now() - creepStart;
-      const softCap = Math.min(90, 10 + elapsed / 95);
-      if (displayProgress < softCap && displayProgress < targetProgress + 0.5) {
-        targetProgress = Math.max(targetProgress, displayProgress + 0.06);
-        cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(tickProgress);
+      const softCap = Math.min(82, 6 + (performance.now() - started) / 180);
+      if (displayProgress < softCap && targetProgress < softCap) {
+        targetProgress = Math.max(targetProgress, displayProgress + 0.28);
       }
-      creepRaf = requestAnimationFrame(creep);
-    };
-    creepRaf = requestAnimationFrame(creep);
-  }
-
-  function stopProgressCreep() {
-    if (creepRaf) cancelAnimationFrame(creepRaf);
-    creepRaf = 0;
+    }, 160);
   }
 
   function setBlurPhase(phase) {
+    if (phase === blurPhase) return;
+    blurPhase = phase;
     document.body.classList.remove(
       'boot-blur-mid',
       'boot-blur-heavy',
@@ -121,141 +171,127 @@ export function createBootShell() {
   }
 
   function setProgress(pct, statusText) {
+    if (finished) return;
     targetProgress = Math.max(targetProgress, Math.min(100, pct));
-    const label = statusText || stageLabel(targetProgress);
-    if (statusEl) statusEl.textContent = label;
+    if (statusEl) statusEl.textContent = statusText || stageLabel(targetProgress);
 
     if (scenePreviewSeen) setBlurPhase('preview');
-    else if (targetProgress < 28) setBlurPhase('mid');
-    else if (targetProgress < 42) setBlurPhase('heavy');
-    else if (targetProgress >= 46) setBlurPhase('live');
-    else setBlurPhase('');
-
-    cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tickProgress);
+    else if (targetProgress >= 42) setBlurPhase('live');
+    else if (targetProgress >= 24) setBlurPhase('heavy');
+    else setBlurPhase('mid');
   }
 
   function markScenePreview(label) {
     const wrap = document.getElementById('scene-wrap');
     if (wrap) wrap.classList.add('scene-has-preview');
     scenePreviewSeen = true;
+    visual?.pause();
     if (!scenePreviewAt) scenePreviewAt = performance.now();
     setBlurPhase('preview');
-    setProgress(
-      Math.max(targetProgress, 54),
-      label || 'Rendering city & rooms…'
-    );
-    onScenePreview?.();
+    setProgress(Math.max(targetProgress, 54), label || 'Generating Agentopia…');
   }
 
   async function waitForPreviewHold() {
     if (!scenePreviewAt) return;
-    const elapsed = performance.now() - scenePreviewAt;
-    const remain = MIN_PREVIEW_BEFORE_FADE_MS - elapsed;
+    const remain = MIN_PREVIEW_BEFORE_FADE_MS - (performance.now() - scenePreviewAt);
     if (remain > 0) await wait(remain);
   }
 
-  function showInteractiveHint({ onContinue } = {}) {
-    document.body.classList.add('boot-interactive');
-    setBlurPhase('preview');
-    setProgress(96, 'Ready — explore the city');
-    if (!picks) return;
-    picks.hidden = false;
-    picks.innerHTML = '';
-
-    const hint = document.createElement('p');
-    hint.className = 'boot-hint';
-    hint.textContent = 'The city is live behind this panel. Continue when you are ready.';
-    picks.appendChild(hint);
-
-    const continueBtn = document.createElement('button');
-    continueBtn.type = 'button';
-    continueBtn.className = 'boot-continue';
-    continueBtn.innerHTML = '<i class="ti ti-arrow-right"></i><span>Enter Simulatia</span>';
-    continueBtn.addEventListener('click', () => {
-      if (finished) return;
-      onContinue?.();
-    });
-    picks.appendChild(continueBtn);
-  }
-
-  async function fadeOut() {
-    if (finished) return;
-    stopProgressCreep();
-    await waitForPreviewHold();
-
+  function teardownShell() {
+    stopTimers();
     finished = true;
-    cancelAnimationFrame(rafId);
-    targetProgress = 100;
-    displayProgress = 100;
-    paintProgress();
-    if (statusEl) statusEl.textContent = 'Welcome to Simulatia';
-    setBlurPhase('preview');
-    picks?.setAttribute('hidden', '');
-    skipBtn?.setAttribute('hidden', '');
-    shell?.setAttribute('aria-busy', 'false');
-
-    document.body.classList.add('sim-revealing', 'boot-reveal-sharp');
-    shell?.classList.add('is-fading');
-
-    const revealPause = reducedMotion ? 50 : 160;
-    const revealHold = reducedMotion ? 320 : REVEAL_SHARPEN_MS;
-
-    await wait(revealPause);
-    await waitFrames(2);
+    visual?.dispose();
+    visual = null;
+    markBootComplete();
 
     document.body.classList.remove(
       'sim-booting',
-      'boot-interactive',
       'boot-blur-mid',
       'boot-blur-heavy',
       'boot-scene-live',
-      'boot-scene-preview'
+      'boot-scene-preview',
+      'sim-revealing',
+      'boot-reveal-sharp'
     );
     document.body.classList.add('sim-ready');
 
-    orbit?.dispose();
-    orbit = null;
-
-    await wait(revealHold);
-
-    document.body.classList.remove('sim-revealing', 'boot-reveal-sharp');
     shell?.classList.add('is-done');
-    await wait(reducedMotion ? 80 : 200);
+    shell?.setAttribute('aria-busy', 'false');
     shell?.remove();
   }
 
+  async function fadeOut() {
+    if (finished || fading) return;
+    if (bootAlreadyComplete() && !document.getElementById('boot-shell')) {
+      finished = true;
+      return;
+    }
+    fading = true;
+    stopTimers();
+
+    try {
+      await waitForPreviewHold();
+      targetProgress = 100;
+      displayProgress = 100;
+      paintProgress();
+      if (statusEl) statusEl.textContent = 'Welcome to Simulatia';
+      picks?.setAttribute('hidden', '');
+      skipBtn?.setAttribute('hidden', '');
+
+      document.body.classList.add('sim-revealing', 'boot-reveal-sharp');
+      shell?.classList.add('is-fading');
+
+      await wait(reducedMotion ? 120 : REVEAL_MS);
+    } catch (err) {
+      console.warn('[Simulatia] boot fade warning', err);
+    } finally {
+      teardownShell();
+      fading = false;
+    }
+  }
+
   skipBtn?.addEventListener('click', () => {
-    if (finished) return;
+    if (finished || fading) return;
     onSkip?.();
   });
 
   return {
     start() {
+      if (bootAlreadyComplete() || finished) {
+        stripBootShellDom();
+        return;
+      }
       document.body.classList.add('sim-booting');
       document.body.classList.remove('sim-ready', 'sim-revealing', 'boot-reveal-sharp');
-      if (orbitHost && !orbit) orbit = createBootOrbit(orbitHost);
-      setProgress(4, 'Preparing interface');
       setBlurPhase('mid');
+
+      if (orbitHost && !visual) {
+        try {
+          visual = createBootVisual(orbitHost);
+        } catch (err) {
+          console.warn('[Simulatia] boot visual unavailable', err);
+        }
+      }
+
+      setProgress(4, 'Generating your world');
+      paintProgress();
+      startProgressLoop();
       startProgressCreep();
     },
 
     setProgress,
     markScenePreview,
-    waitForPreviewHold,
-    showInteractiveHint,
     startProgressCreep,
-    stopProgressCreep,
+    stopProgressCreep: stopTimers,
 
     onSkip(cb) {
       onSkip = cb;
     },
 
-    onScenePreview(cb) {
-      onScenePreview = cb;
-    },
-
     fadeOut,
     finish: fadeOut,
+    isFinished() {
+      return finished;
+    },
   };
 }

@@ -22,9 +22,44 @@ import './styles/panel-liquid-motion.css';
 
 import { createBootShell } from './ui/loading.js';
 
+const BOOT_TOUR_MS = 4800;
+const BOOT_MIN_MS = 5500;
+const BOOT_MAX_MS = 24000;
+const FIRST_FRAME_TIMEOUT_MS = 10000;
+const BOOT_DONE_KEY = 'simulatia_boot_complete';
+
+function bootSessionComplete() {
+  if (window.__simulatiaBootstrapped) return true;
+  try {
+    return sessionStorage.getItem(BOOT_DONE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function stripBootChrome() {
+  document.body.classList.remove(
+    'sim-booting',
+    'boot-blur-mid',
+    'boot-blur-heavy',
+    'boot-scene-live',
+    'boot-scene-preview',
+    'sim-revealing',
+    'boot-reveal-sharp'
+  );
+  document.body.classList.add('sim-ready');
+  document.getElementById('boot-shell')?.remove();
+}
+
 function yieldToMain() {
   return new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
+  });
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
   });
 }
 
@@ -40,7 +75,6 @@ async function loadRuntime() {
     { initInspector },
     { initPanels },
     { initChrome },
-    { agents: agentDefs },
   ] = await Promise.all([
     import('./data/store.js'),
     import('./ui/theme.js'),
@@ -52,7 +86,6 @@ async function loadRuntime() {
     import('./ui/inspector.js'),
     import('./ui/panels.js'),
     import('./ui/chrome.js'),
-    import('./data/agents.js'),
   ]);
 
   return {
@@ -66,178 +99,196 @@ async function loadRuntime() {
     initInspector,
     initPanels,
     initChrome,
-    agentDefs,
   };
 }
 
 async function bootstrap() {
-  const boot = createBootShell();
-  boot.start();
-  await yieldToMain();
+  if (import.meta.hot && window.__simulatia) return;
 
-  let bootDismissed = false;
-  let bootFading = false;
+  if (bootSessionComplete() && window.__simulatia) {
+    stripBootChrome();
+    return;
+  }
+
+  if (window.__simulatiaBootstrapStarted) {
+    if (window.__simulatia) return;
+  } else {
+    window.__simulatiaBootstrapStarted = true;
+  }
+
+  const skipBootUI = bootSessionComplete();
+  if (skipBootUI) stripBootChrome();
+
+  const boot = createBootShell();
+  if (!skipBootUI) {
+    boot.start();
+    await yieldToMain();
+  }
+
+  let bootFinished = false;
   let bootFadeFallback = null;
   let sim = null;
+  const bootStartedAt = performance.now();
 
-  const dismissBoot = async () => {
-    if (bootDismissed || bootFading) return;
-    bootFading = true;
-    bootDismissed = true;
-    if (bootFadeFallback) clearTimeout(bootFadeFallback);
+  const finishBoot = async () => {
+    if (bootFinished) return;
+    bootFinished = true;
+    window.__simulatiaBootstrapped = true;
+    try {
+      sessionStorage.setItem(BOOT_DONE_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+    if (bootFadeFallback) {
+      clearTimeout(bootFadeFallback);
+      bootFadeFallback = null;
+    }
+    boot.stopProgressCreep?.();
     try {
       sim?.stopGuidedIntro?.();
     } catch {
       /* ignore */
     }
-    await boot.fadeOut();
+    try {
+      await boot.fadeOut();
+    } catch (err) {
+      console.warn('[Simulatia] boot fade failed', err);
+      document.body.classList.remove('sim-booting');
+      document.body.classList.add('sim-ready');
+      document.getElementById('boot-shell')?.remove();
+    }
   };
 
-  boot.onSkip(() => dismissBoot());
+  boot.onSkip(() => finishBoot());
+
+  bootFadeFallback = window.setTimeout(() => {
+    console.warn('[Simulatia] boot safety timeout');
+    finishBoot();
+  }, BOOT_MAX_MS);
 
   try {
-    boot.setProgress(10, 'Loading simulation engine');
+    if (!skipBootUI) boot.setProgress(8, 'Loading simulation engine');
     const runtime = await loadRuntime();
     await yieldToMain();
 
-    boot.setProgress(16, 'Preparing interface');
+    if (!skipBootUI) boot.setProgress(14, 'Generating your world');
     const store = runtime.createStore();
     runtime.initTheme();
-
     const assetLoader = runtime.createAssetLoader(runtime.THREE);
 
     let resolveFirstFrame;
+    let firstFrameSeen = false;
     const firstFrameReady = new Promise((resolve) => {
       resolveFirstFrame = resolve;
     });
 
-    boot.setProgress(22, 'Loading world assets');
+    if (!skipBootUI) boot.setProgress(22, 'Generating your world');
 
     const preloadPromise = assetLoader
       .preloadCatalog((frac) => {
-        const pct = 22 + frac * 32;
-        const label =
-          frac < 0.35
-            ? 'Loading characters'
-            : frac < 0.7
-              ? 'Loading furniture'
-              : 'Loading rooms & buildings';
-        boot.setProgress(pct, label);
+        if (!skipBootUI) boot.setProgress(22 + frac * 28, 'Generating your world');
       })
       .catch((err) => {
         console.warn('[Simulatia] asset preload partial failure', err);
       });
 
-    const simPromise = (async () => {
-      await yieldToMain();
-      boot.setProgress(58, 'Building city simulation');
-      try {
-        return runtime.initSimulation({
-          store,
-          assetLoader,
-          THREE: runtime.THREE,
-          skipAutoIntro: true,
-          onFirstFrame: () => {
-            boot.markScenePreview('Rendering city & rooms…');
-            resolveFirstFrame?.();
-          },
-        });
-      } catch (err) {
-        console.error('[Simulatia] initSimulation failed', err);
-        return null;
-      }
-    })();
+    if (!skipBootUI) boot.setProgress(54, 'Generating Agentopia');
+    await yieldToMain();
 
-    const [simResult] = await Promise.all([simPromise, preloadPromise]);
+    let simResult = null;
+    try {
+      simResult = runtime.initSimulation({
+        store,
+        assetLoader,
+        THREE: runtime.THREE,
+        skipAutoIntro: true,
+        onFirstFrame: () => {
+          if (firstFrameSeen) return;
+          firstFrameSeen = true;
+          if (!skipBootUI) boot.markScenePreview('Generating Agentopia…');
+          resolveFirstFrame?.();
+        },
+      });
+    } catch (err) {
+      console.error('[Simulatia] initSimulation failed', err);
+    }
+
+    await preloadPromise;
     sim = simResult;
 
     if (!sim) {
       document.getElementById('sceneFallback')?.classList.add('show');
       boot.setProgress(100, 'Could not start simulation');
-      await boot.fadeOut();
+      await finishBoot();
       return;
     }
 
-    boot.setProgress(78, 'Optimizing scene');
-    await Promise.race([firstFrameReady, new Promise((r) => setTimeout(r, 6000))]);
-    boot.markScenePreview('Almost ready…');
-
-    boot.setProgress(86, 'Preparing interface');
-
-    try {
-      runtime.initCommandBar(store);
-      runtime.initSidebar(store);
-      runtime.initInspector(store);
-      runtime.initPanels();
-      runtime.initChrome();
-    } catch (uiErr) {
-      console.warn('[Simulatia] UI init warning', uiErr);
+    if (!skipBootUI) boot.setProgress(68, 'Rendering city view');
+    await Promise.race([firstFrameReady, wait(FIRST_FRAME_TIMEOUT_MS)]);
+    if (!skipBootUI) {
+      if (!firstFrameSeen) boot.markScenePreview('Generating Agentopia…');
+      else boot.markScenePreview('Flying through layers…');
     }
 
-    await yieldToMain();
-    boot.setProgress(92, 'Finalizing experience');
-
-    const completeBoot = async (agentDef) => {
-      await dismissBoot();
-      if (!agentDef || !sim) return;
-      try {
-        const roomAgents = sim.getRoomAgents?.() || [];
-        const match =
-          roomAgents.find((w) => w.userData?.key === agentDef.key) ||
-          roomAgents.find((w) => w.userData?.name === agentDef.name);
-        if (match) {
-          sim.openAgent({
-            key: match.userData.key,
-            name: match.userData.name,
-            role: match.userData.role,
-            group: match,
-            roomOnly: true,
+    const bootTourPromise =
+      !skipBootUI && sim.runBootSequence
+      ? new Promise((resolve) => {
+          let settled = false;
+          const done = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          };
+          sim.runBootSequence({
+            onProgress: (pct, label) => {
+              if (!bootFinished) boot.setProgress(Math.max(58, pct), label);
+            },
+            onReady: done,
           });
-        }
-      } catch {
-        /* ignore post-boot agent focus */
+          window.setTimeout(done, BOOT_TOUR_MS + 800);
+        })
+      : Promise.resolve();
+
+    const uiInitPromise = (async () => {
+      await yieldToMain();
+      try {
+        runtime.initCommandBar(store);
+        runtime.initSidebar(store);
+        runtime.initInspector(store);
+        runtime.initPanels();
+        runtime.initChrome();
+      } catch (uiErr) {
+        console.warn('[Simulatia] UI init warning', uiErr);
       }
-    };
+    })();
 
-    const baseOpenAgent = sim.openAgent?.bind(sim);
-    if (baseOpenAgent) {
-      sim.openAgent = (item) => {
-        if (!bootDismissed && item?.roomOnly) {
-          const def = runtime.agentDefs.find(
-            (a) => a.key === item.key || a.key === item.agentKey
-          );
-          completeBoot(def || null);
-          return;
-        }
-        baseOpenAgent(item);
-      };
-    }
+    await Promise.all([bootTourPromise, uiInitPromise]);
 
-    bootFadeFallback = window.setTimeout(() => dismissBoot(), 18000);
+    const elapsed = performance.now() - bootStartedAt;
+    if (elapsed < BOOT_MIN_MS) await wait(BOOT_MIN_MS - elapsed);
 
-    if (sim.runBootSequence) {
-      sim.runBootSequence({
-        onProgress: (pct, label) => boot.setProgress(Math.max(58, pct), label),
-        onReady: () => dismissBoot(),
-      });
-    } else {
-      boot.setProgress(98, 'Ready');
-      window.setTimeout(() => dismissBoot(), 600);
-    }
+    if (!skipBootUI) boot.setProgress(100, 'Ready');
+    await finishBoot();
 
     window.__simulatia = { ...sim, store, assetLoader, boot };
   } catch (err) {
     console.error('[Simulatia] bootstrap failed', err);
     document.getElementById('sceneFallback')?.classList.add('show');
     boot.setProgress(100, 'Something went wrong');
-    try {
-      await boot.fadeOut();
-    } catch {
-      document.body.classList.remove('sim-booting');
-      document.body.classList.add('sim-ready');
-      document.getElementById('boot-shell')?.remove();
-    }
+    await finishBoot();
   }
+}
+
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted && bootSessionComplete()) stripBootChrome();
+});
+
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    if (window.__simulatiaBootstrapped || window.__simulatia) {
+      stripBootChrome();
+    }
+  });
 }
 
 bootstrap();

@@ -129,7 +129,12 @@ html[data-theme="dark"] .icon-lens,html[data-theme="dark"] .small-action,html[da
 #v4Canvas{will-change:transform,filter;transition:filter .34s var(--ease-ios),opacity .34s var(--ease-ios)!important}
 #v4Canvas.transitioning{filter:blur(4px) brightness(.985) saturate(1.04)!important}
 #v4Canvas:not(.transitioning):not([data-view-mode="map"]):not([data-view-mode="satellite"]){filter:none!important}
-.room-mode #v4Canvas:not(.transitioning){filter:none!important}
+#scene-wrap.room-mode #v4Canvas,
+#scene-wrap.room-mode #v4Canvas.transitioning,
+#scene-wrap.agent-solo-mode #v4Canvas,
+#scene-wrap.agent-solo-mode #v4Canvas.transitioning,
+#scene-wrap.room-mode.agent-solo-mode #v4Canvas,
+#scene-wrap.room-mode.agent-solo-mode #v4Canvas.transitioning{filter:none!important}
 .v6-cinema{opacity:.18!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .v6-cinema.show{opacity:.46!important;backdrop-filter:blur(2.5px) saturate(1.04)!important;-webkit-backdrop-filter:blur(2.5px) saturate(1.04)!important}
 .room-mode .v6-cinema:not(.show),.room-mode .v11-tunnel:not(.show){opacity:0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
@@ -139,7 +144,11 @@ html[data-theme="dark"] .icon-lens,html[data-theme="dark"] .small-action,html[da
   background:radial-gradient(ellipse at center,rgba(255,255,255,0) 64%,rgba(235,238,244,.10) 82%,rgba(210,216,225,.24) 100%)!important;
   box-shadow:inset 0 0 32px rgba(255,255,255,.10),inset 0 0 62px rgba(40,45,55,.09)!important;
 }
-.room-mode .scene-wrap::after{opacity:.48!important;backdrop-filter:blur(12px) saturate(1.02)!important;-webkit-backdrop-filter:blur(12px) saturate(1.02)!important}
+#scene-wrap.room-mode::after,
+#scene-wrap.agent-solo-mode::after,
+#scene-wrap.room-mode.agent-solo-mode::after{display:none!important;opacity:0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#scene-wrap.room-mode .scene-tilt-band,
+#scene-wrap.agent-solo-mode .scene-tilt-band{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .v11-tunnel{backdrop-filter:blur(0)!important;-webkit-backdrop-filter:blur(0)!important}
 .v11-tunnel.show{backdrop-filter:blur(3px) saturate(1.06)!important;-webkit-backdrop-filter:blur(3px) saturate(1.06)!important}
 

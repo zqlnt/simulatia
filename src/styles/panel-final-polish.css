@@ -2,20 +2,21 @@
  * Final panel polish — edge rails, chrome strip, analytics (loads last).
  */
 
-/* Boot / reveal — scene + preloader only (no panel chrome behind glass) */
+/* Boot / reveal — live scene backdrop; hide chrome, not #scene-wrap */
 body.sim-booting #app,
 body.sim-booting .app-shell,
 body.sim-revealing #app,
 body.sim-revealing .app-shell {
-  opacity: 0 !important;
-  visibility: hidden !important;
+  opacity: 1 !important;
+  visibility: visible !important;
   pointer-events: none !important;
 }
 
-body.sim-booting #app > *,
-body.sim-booting .app-shell > *,
-body.sim-revealing #app > *,
-body.sim-revealing .app-shell > * {
+body.sim-booting #app > *:not(#scene-wrap),
+body.sim-booting .app-shell > *:not(#scene-wrap),
+body.sim-revealing #app > *:not(#scene-wrap),
+body.sim-revealing .app-shell > *:not(#scene-wrap) {
+  opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }

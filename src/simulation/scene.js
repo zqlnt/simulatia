@@ -112,6 +112,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   };
   var selectable=[], labelData=[], labelEls={}, focusObjects={}, pulses=[], routeDots=[], packets=[], agents=[], vehicles=[], drones=[], streetLamps=[], focus={}, mode='city', renderScope='city', selected='overview', dark=false;
   var hovered=null, hoverRing=null, selectedHalo=null, navStack=[], viewMode='3d', mapMode=false, suppressHistory=false, simState={time:8.15,flow:12,weather:'Clear'};
+  var roomHintTimer=null, agentHintTimer=null;
   var focusedCityAgentGroup=null;
   
   var assetLoader = depsAssetLoader;
@@ -694,8 +695,15 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     if(cinema)cinema.classList.remove('show');
     if(tunnel)tunnel.className='v11-tunnel';
   }
+  function shouldUseViewportBlur(){
+    return renderScope!=='room'&&renderScope!=='agent'&&mode!=='agent';
+  }
   function beginViewportTransition(kind,duration){
     clearTimeout(focusTo._blurTimer);
+    if(!shouldUseViewportBlur()){
+      finishViewportTransition();
+      return;
+    }
     wrap.classList.add('is-transitioning');
     canvas.classList.add('transitioning');
     if(cinema)cinema.classList.add('show');
@@ -741,10 +749,30 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     clearCityAgentFocus();
   }
   function isRoomPodAgent(agentKey,item,group){
-    if(item&&item.roomOnly) return true;
     if(group&&group.userData&&group.userData.roomAgent) return true;
     if(roomNetwork&&roomNetwork.userData.agentWrappers&&roomNetwork.userData.agentWrappers.has(agentKey)) return true;
+    if(item&&item.roomOnly&&findRoomPodKey(agentKey,item.name,item.role)) return true;
     return false;
+  }
+  function resolvePickAgentGroup(hitObj,agentKey){
+    var o=hitObj, guard=0;
+    while(o&&guard++<8){
+      if(o.userData&&o.userData.agentGroup) return o.userData.agentGroup;
+      o=o.parent;
+    }
+    return resolveAgentGroup(agentKey,{});
+  }
+  function flashAgentHint(){
+    if(!agentFocusHint) return;
+    agentFocusHint.classList.add('show');
+    clearTimeout(agentHintTimer);
+    agentHintTimer=setTimeout(function(){agentFocusHint.classList.remove('show');},2200);
+  }
+  function scheduleRoomHint(){
+    if(!hint||mode==='agent') return;
+    hint.classList.add('show');
+    clearTimeout(roomHintTimer);
+    roomHintTimer=setTimeout(function(){hint.classList.remove('show');},3200);
   }
   function findRoomPodKey(agentKey,name,role){
     if(roomNetwork&&roomNetwork.userData.agentWrappers){
@@ -766,17 +794,23 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     universe.visible=renderScope==='worlds';
     city.visible=renderScope==='city'||renderScope==='agent'||renderScope==='building'||mode==='building';
     interior.visible=renderScope==='room';
-    hint.classList.toggle('show',renderScope==='room'||mode==='agent');
-    if(agentFocusHint){
-      agentFocusHint.classList.toggle('show',mode==='agent');
-      agentFocusHint.textContent=renderScope==='agent'?'Solo agent view · Back or City to exit':'Agent view · click/drag to inspect · choose Room or City to exit';
+    if(mode==='agent'){
+      hint.classList.remove('show');
+      clearTimeout(roomHintTimer);
+      flashAgentHint();
+    }else if(renderScope==='room'){
+      scheduleRoomHint();
+    }else{
+      hint.classList.remove('show');
+      clearTimeout(roomHintTimer);
+      if(agentFocusHint) agentFocusHint.classList.remove('show');
     }
     depth.querySelectorAll('button').forEach(function(b){
       var k=b.getAttribute('data-v4');
       b.classList.toggle('active',k===mode||(mode==='city'&&k==='city')||(mode==='building'&&k==='building')||(mode==='agent'&&k==='agent'));
     });
     wrap.classList.toggle('room-mode',renderScope==='room');
-    wrap.classList.toggle('agent-solo-mode',renderScope==='agent'&&mode==='agent');
+    wrap.classList.toggle('agent-solo-mode',mode==='agent');
     var inRoom=renderScope==='room';
     var agentSolo=renderScope==='agent'&&mode==='agent';
     renderer.shadowMap.enabled=!inRoom&&!agentSolo&&!mapMode&&!mobileMode;
@@ -807,6 +841,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
       leaveAgentFocus();
     }
     applyMobileCityFraming();
+    if(renderScope==='room'||renderScope==='agent'||mode==='agent') finishViewportTransition();
   }
   function updatePanel(d){if(nodeTitle)nodeTitle.textContent=d.name;if(nodeSub)nodeSub.textContent=d.subtitle;if(nodeDesc)nodeDesc.textContent=d.description;if(nodeBadge){nodeBadge.textContent=d.health>=96?'Excellent':d.health>=91?'Good':'Watch';nodeBadge.style.color=d.health>=96?'var(--green)':d.health>=91?'var(--orange)':'var(--red)'} updateBreadcrumbs(d); updateNavRows(); if(topHealth)topHealth.textContent=d.health+'%';if(focusName)focusName.textContent=d.name;if(zoomState)zoomState.textContent=d.mode==='worlds'?'Worlds':d.mode==='room'?'Room':d.mode==='agent'?'Agent':d.radius>=70?'City':d.radius>=34?'District':'Building'; var a=document.getElementById('stat-agents'); if(a)a.textContent=d.agents; var w=document.getElementById('stat-workflows'); if(w)w.textContent=d.workflows; var tr=document.getElementById('stat-transit'); if(tr)tr.textContent=d.transit+'%';}
   function focusTo(key,silent){
@@ -827,8 +862,11 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     }
     if(prev!==key && !silent && !suppressHistory){navStack.push(prev); if(navStack.length>12)navStack.shift();}
     selected=key;
-    if(d.mode==='agent'&&d.renderMode==='agent'&&d.agentGroup) applyCityAgentFocus(d.agentGroup);
-    else if(d.mode!=='agent'||d.renderMode!=='agent') clearCityAgentFocus();
+    if(d.mode==='agent'){
+      if(d.renderMode==='agent'&&d.agentGroup) applyCityAgentFocus(d.agentGroup);
+    }else{
+      clearCityAgentFocus();
+    }
     var nextRender=d.renderMode||(d.mode==='agent'?'room':d.mode)||'city';
     if(d.mode==='building') nextRender='city';
     if(d.mode==='agent'&&!d.renderMode) nextRender='room';
@@ -838,6 +876,10 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     if(mobileMode&&key==='overview') S.targetFocus.copy(MOBILE_CITY_FOCUS);
     else S.targetFocus.copy(d.focus);
     S.targetRadius=mapMode?Math.max(d.radius,mode==='room'?17:62):d.radius;
+    if(d.mode==='agent'){
+      S.radius=S.targetRadius;
+      S.auto=false;
+    }
     S.targetFov=d.fov!=null?d.fov:(d.mode==='agent'?38:(d.mode==='room'?48:(d.mode==='worlds'?38:42)));
     S.targetPhi=d.phi!=null?d.phi:(d.mode==='agent'?.92:d.mode==='worlds'?.86:d.mode==='room'?1.08:key==='overview'?.96:.75);
     if(mapMode){S.targetPhi=d.mode==='room'?.45:.24; S.targetFov=34;}
@@ -845,9 +887,9 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     if(mobileMode&&key==='overview'){S.targetRadius=Math.max(d.radius||82,90);S.targetPhi=MOBILE_CITY_PHI;S.targetTheta=MOBILE_CITY_THETA;}
     applyMobileCityFraming();
     S.last=performance.now(); updatePanel(d); setSelectedHalo(d);
-    if((d.mode||'city')!==wasMode && !silent){
-      beginViewportTransition(d.mode==='room'?'enter':'shift',d.mode==='room'?480:360);
-    } else if(!wrap.classList.contains('is-transitioning')) {
+    if((d.mode||'city')!==wasMode && !silent && d.mode!=='room' && d.mode!=='agent'){
+      beginViewportTransition('shift',360);
+    } else {
       finishViewportTransition();
     }
     if(!silent)announce((d.mode==='agent'?'Inspecting ':d.mode==='room'?'Entering ':'Transitioning to ')+d.name);
@@ -869,11 +911,11 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     if(source&&source.focus){
       S.targetFocus.copy(source.focus); S.targetRadius=Math.max(8,Math.min(source.radius||18,20)); S.targetPhi=.62; S.last=performance.now();
     }
-    beginViewportTransition('enter',reduceMotion?120:520);
+    finishViewportTransition();
     pendingEnterRoom=setTimeout(function(){
       pendingEnterRoom=null;
       focusTo(roomKey,true);
-    },reduceMotion?35:240);
+    },reduceMotion?35:120);
   }
   function goUp(){
     var d=focus[selected]||focus.overview, parent=d.parentKey;
@@ -891,37 +933,38 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   }
   function openAgent(item){
     comm.classList.add('show');
+    hint.classList.remove('show');
+    clearTimeout(roomHintTimer);
     var name=item.name||'Agent', role=item.role||'Agent';
     document.getElementById('v4AgentName').textContent=name;
     document.getElementById('v4AgentRole').textContent=role;
     document.getElementById('v4AgentMsg').textContent='Hi, I’m '+name+'. I can report status, accept a task, or explain what is happening here.';
     var agentKey=item.key||('agent-focus-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-'));
-    var group=resolveAgentGroup(agentKey,item);
+    var group=item.group||resolveAgentGroup(agentKey,item);
     var pos=item.pos?item.pos.clone():new THREE.Vector3(0,1,0);
     if(group) group.getWorldPosition(pos);
     var podKey=findRoomPodKey(agentKey,name,role)||agentKey;
-    var roomPod=isRoomPodAgent(podKey,item,group)||!!findRoomPodKey(agentKey,name,role);
-    clearCityAgentFocus();
+    var roomPod=isRoomPodAgent(podKey,item,group);
     var tileKey=group&&group.userData?group.userData.tileKey:null;
     var renderMode, parentKey, podRadius, theta, phi, fov;
     if(roomPod){
       agentKey=podKey;
-      if(group&&roomNetwork&&roomNetwork.userData.agentWrappers){
+      if(roomNetwork&&roomNetwork.userData.agentWrappers){
         group=roomNetwork.userData.agentWrappers.get(agentKey)||group;
         if(group) group.getWorldPosition(pos);
         tileKey=group.userData.tileKey||tileKey;
       }
       renderMode='room';
-      parentKey=tileKey||'hq-room';
+      parentKey='hq-room';
       podRadius=5.2;
       theta=.82;
       phi=.76;
       fov=30;
     }else{
-      applyCityAgentFocus(group);
+      if(!group) group=resolveAgentGroup(agentKey,item);
       renderMode='agent';
-      parentKey=(mode!=='agent'&&selected&&focus[selected])?selected:'overview';
-      podRadius=3.1;
+      parentKey=(renderScope==='room'||renderScope==='building')?'hq-room':'overview';
+      podRadius=3.4;
       theta=group?Math.atan2(camera.position.x-group.position.x,camera.position.z-group.position.z):S.theta;
       phi=.78;
       fov=28;
@@ -947,9 +990,17 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
       parentKey:parentKey,
       agentGroup:group||null,
     };
-    beginViewportTransition(roomPod?'enter':'shift',reduceMotion?120:420);
+    finishViewportTransition();
+    if(roomPod){
+      syncRoomPodFocus(agentKey);
+    }else if(group){
+      applyCityAgentFocus(group);
+    }
+    S.auto=false;
+    S.radius=S.targetRadius=podRadius;
     focusTo(agentKey,true);
     if(roomPod) syncRoomPodFocus(agentKey);
+    else if(group) applyCityAgentFocus(group);
     updatePanel(focus[agentKey]);
     setSelectedHalo(focus[agentKey]);
     if(store){
@@ -1084,9 +1135,9 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   canvas.addEventListener('pointerdown',function(e){canvas.setPointerCapture(e.pointerId);activePointers[e.pointerId]={x:e.clientX,y:e.clientY};S.drag=true;S.pid=e.pointerId;S.moved=false;S.sx=S.lx=e.clientX;S.sy=S.ly=e.clientY;S.last=performance.now();canvas.classList.add('dragging')});
   canvas.addEventListener('pointermove',function(e){if(activePointers[e.pointerId])activePointers[e.pointerId]={x:e.clientX,y:e.clientY};var pts=pointerList(); if(pts.length>=2){var nd=dist2(pts[0],pts[1]); if(pinchDistance){S.targetRadius=clamp(S.targetRadius-(nd-pinchDistance)*.045,mode==='agent'?2.4:(mode==='room'?7.6:14),132); S.moved=true;} pinchDistance=nd; S.last=performance.now(); return;} if(!S.drag||S.pid!==e.pointerId)return;var dx=e.clientX-S.lx,dy=e.clientY-S.ly;if(Math.abs(e.clientX-S.sx)+Math.abs(e.clientY-S.sy)>4)S.moved=true;S.targetTheta-=dx*(mapMode?.0048:.0075);S.targetPhi=clamp(S.targetPhi+dy*(mapMode?.0038:.0058),.16,1.42);S.lx=e.clientX;S.ly=e.clientY});
   function end(e){delete activePointers[e.pointerId]; if(pointerList().length<2)pinchDistance=null; if(S.pid!==e.pointerId)return;S.drag=false;canvas.classList.remove('dragging');if(!S.moved)pick(e.clientX,e.clientY);S.pid=null} canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);canvas.addEventListener('pointerleave',end);
-  canvas.addEventListener('wheel',function(e){e.preventDefault();var agentMin=mode==='agent'?2.4:(mode==='room'?7.6:14);S.targetRadius=clamp(S.targetRadius+e.deltaY*(mapMode?.05:.035),agentMin,mapMode?155:128);S.last=performance.now();if(mode==='agent'){var ad=focus[selected];var exitR=ad&&ad.renderMode==='room'?10.5:8.8;if(S.targetRadius>exitR){leaveAgentFocus();focusTo(ad&&ad.parentKey?ad.parentKey:'overview');return}}if(S.targetRadius>118&&mode!=='worlds')focusTo('worlds')},{passive:false});
+  canvas.addEventListener('wheel',function(e){e.preventDefault();var agentMin=mode==='agent'?2.4:(mode==='room'?7.6:14);S.targetRadius=clamp(S.targetRadius+e.deltaY*(mapMode?.05:.035),agentMin,mapMode?155:128);S.last=performance.now();if(mode==='agent'){var ad=focus[selected];var exitR=ad&&ad.renderMode==='room'?12.5:11.5;if(S.radius>exitR&&S.targetRadius>exitR){leaveAgentFocus();focusTo(ad&&ad.parentKey?ad.parentKey:'overview');return}}if(S.targetRadius>118&&mode!=='worlds')focusTo('worlds')},{passive:false});
   var ray=new THREE.Raycaster(), mouse=new THREE.Vector2();
-  function pick(x,y){var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hit=ray.intersectObjects(selectable,false)[0]; if(hit){var o=hit.object;if(o.userData.pickType==='agent')openAgent({key:o.userData.agentKey||o.userData.focusKey,name:o.userData.agentName,role:o.userData.agentRole,group:o.userData.agentGroup||null,roomOnly:!!o.userData.agentRoom}); else if(o.userData.focusKey){var k=o.userData.focusKey; if(mode==='building'&&selected===k&&focus[k]&&focus[k].canEnter)enterRoom(k); else focusTo(k)}}}
+  function pick(x,y){var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hit=ray.intersectObjects(selectable,false)[0]; if(hit){var o=hit.object;if(o.userData.pickType==='agent'){var ak=o.userData.agentKey||o.userData.focusKey; openAgent({key:ak,name:o.userData.agentName,role:o.userData.agentRole,group:resolvePickAgentGroup(o,ak),roomOnly:!!o.userData.agentRoom});} else if(o.userData.focusKey){var k=o.userData.focusKey; if(mode==='building'&&selected===k&&focus[k]&&focus[k].canEnter)enterRoom(k); else focusTo(k)}}}
   function hoverAt(x,y){if(S.drag)return; var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hit=ray.intersectObjects(selectable,false)[0]; hovered=hit?hit.object:null; canvas.style.cursor=hovered?'pointer':'grab'; if(hoverRing){if(hovered&&hovered.userData&&hovered.userData.focusKey){var wp=new THREE.Vector3(); hovered.getWorldPosition(wp); hoverRing.position.set(wp.x,.17,wp.z); var sx=hovered.userData.pickType==='agent'?.65:(hovered.geometry&&hovered.geometry.boundingSphere?hovered.geometry.boundingSphere.radius:1.2); hoverRing.scale.setScalar(Math.max(.55,Math.min(3.5,sx*.68))); hoverRing.visible=mode!=='agent'} else hoverRing.visible=false}}
   canvas.addEventListener('pointermove',function(e){hoverAt(e.clientX,e.clientY)});
   function project(pos){var p=pos.clone().project(camera);return{x:(p.x+1)*.5*wrap.clientWidth,y:(-p.y+1)*.5*wrap.clientHeight,z:p.z}}
@@ -1098,23 +1149,33 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     return agents.filter(function(a){return a.userData&&a.userData.roomAgent;});
   }
 
+  var bootSequenceRan=false;
   function runBootSequence(handlers){
-    var onLog=handlers&&handlers.onLog, onReady=handlers&&handlers.onReady, onProgress=handlers&&handlers.onProgress;
+    var onLog=handlers&&handlers.onLog, onReady=handlers&&handlers.onReady, onProgress=handlers&&handlers.onProgress, readyFired=false;
     function log(t,dim){if(onLog)onLog(t,!!dim);}
     function prog(pct,label){if(onProgress)onProgress(pct,label);}
-    introRunning=true; introTimers.forEach(clearTimeout); introTimers=[]; navStack=[]; S.auto=false; comm.classList.remove('show');
-    wrap.classList.add('guided-intro-running'); if(guidedIntro)guidedIntro.classList.add('hide');
-    prog(52,'World atlas…'); focusTo('worlds',true); beginViewportTransition('shift',360);
-    later(900,function(){prog(62,'City layer…'); focusTo('overview',true);});
-    later(2100,function(){prog(74,'Building layer…'); focusTo('hq',true);});
-    later(3400,function(){prog(86,'Room layer…'); focusTo('hq-room',true);});
-    later(4800,function(){
-      prog(96,'Ready — explore freely');
+    function finishBoot(){
+      if(readyFired) return;
+      readyFired=true;
       introRunning=false;
       wrap.classList.remove('guided-intro-running');
       S.auto=true;
       if(onReady) onReady();
-    });
+    }
+    if(bootSequenceRan||!document.body.classList.contains('sim-booting')||document.body.classList.contains('sim-ready')){
+      finishBoot();
+      return;
+    }
+    bootSequenceRan=true;
+    introRunning=true; introTimers.forEach(clearTimeout); introTimers=[]; navStack=[]; S.auto=false; comm.classList.remove('show');
+    wrap.classList.add('guided-intro-running'); if(guidedIntro)guidedIntro.classList.add('hide');
+    finishViewportTransition();
+    prog(52,'Generating your world…'); focusTo('worlds',true);
+    later(1000,function(){prog(62,'Generating Agentopia…'); focusTo('overview',true);});
+    later(2400,function(){prog(74,'Building cities…'); focusTo('hq',true);});
+    later(3800,function(){prog(86,'Loading rooms & agents…'); focusTo('hq-room',true);});
+    later(5200,function(){prog(96,'Finalizing experience'); finishBoot();});
+    later(6800,function(){finishBoot();});
   }
 
   window.__simulatia={focusTo:focusTo,enterRoom:enterRoom,setViewMode:setViewMode,goBack:goBack,goUp:goUp,openAgent:openAgent};
@@ -1123,7 +1184,9 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   function anim(){requestAnimationFrame(anim);frame++;var dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime, inRoom=renderScope==='room'||mode==='room'||mode==='agent', lowPower=mapMode||mobileMode||inRoom;
     if(!tabVisible){return}
     if(!firstFrameFired&&frame>0){firstFrameFired=true; if(onFirstFrame) onFirstFrame();}
-    if(!wrap.classList.contains('is-transitioning')&&(canvas.classList.contains('transitioning')||(cinema&&cinema.classList.contains('show')))){finishViewportTransition()}
+    if(canvas.classList.contains('transitioning')||(cinema&&cinema.classList.contains('show'))){
+      if(renderScope==='room'||renderScope==='agent'||mode==='agent'||!wrap.classList.contains('is-transitioning')) finishViewportTransition();
+    }
     if(S.auto&&!S.drag&&!mapMode&&performance.now()-S.last>1700){
       if(mobileMode&&selected==='overview'&&(renderScope==='city'||mode==='city')){
         S.targetTheta=MOBILE_CITY_THETA;

@@ -12,8 +12,11 @@
 
 #scene-wrap.room-mode #v4Canvas,
 #scene-wrap.agent-solo-mode #v4Canvas,
-#v4Canvas.transitioning {
-  filter: none;
+#scene-wrap.room-mode #v4Canvas.transitioning,
+#scene-wrap.agent-solo-mode #v4Canvas.transitioning,
+#scene-wrap.room-mode.agent-solo-mode #v4Canvas,
+#scene-wrap.room-mode.agent-solo-mode #v4Canvas.transitioning {
+  filter: none !important;
 }
 
 /* Tilt-shift bands — blur + fade to white at top/bottom */
@@ -57,13 +60,13 @@
   visibility: hidden;
 }
 
-/* Interior — soft tilt-shift: floor edges dissolve into white void */
+/* Interior — light edge fade only (no backdrop blur on room/agent) */
 #scene-wrap.room-mode .scene-tilt-band {
   opacity: 1;
   visibility: visible;
-  height: 40%;
-  backdrop-filter: blur(22px) saturate(1.01);
-  -webkit-backdrop-filter: blur(22px) saturate(1.01);
+  height: 32%;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 #scene-wrap.room-mode .scene-tilt-band--top {
@@ -97,17 +100,33 @@
     radial-gradient(ellipse 76% 64% at 50% 48%, transparent 28%, rgba(255, 255, 255, 0.35) 100%) !important;
 }
 
-#scene-wrap.room-mode .scene-wrap::after,
-#scene-wrap.room-mode::after {
-  opacity: 0.55 !important;
-  background: radial-gradient(
-    ellipse 70% 58% at 50% 46%,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.18) 55%,
-    rgba(255, 255, 255, 0.62) 100%
-  ) !important;
-  backdrop-filter: blur(16px) saturate(1.02) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(1.02) !important;
+/* Room + agent — sharp viewport (no edge blur overlay) */
+#scene-wrap.room-mode::after,
+#scene-wrap.agent-solo-mode::after,
+#scene-wrap.room-mode.agent-solo-mode::after {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+#scene-wrap.room-mode .v6-cinema,
+#scene-wrap.agent-solo-mode .v6-cinema,
+#scene-wrap.room-mode .v6-cinema.show,
+#scene-wrap.agent-solo-mode .v6-cinema.show,
+#scene-wrap.room-mode .v11-tunnel,
+#scene-wrap.room-mode .v11-tunnel.show,
+#scene-wrap.agent-solo-mode .v11-tunnel,
+#scene-wrap.agent-solo-mode .v11-tunnel.show {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  pointer-events: none !important;
 }
 
 html[data-theme='dark'] #scene-wrap.room-mode .scene-tilt-band--top {

@@ -210,6 +210,13 @@ function buildMiniBar(el, panel) {
 export function initChrome() {
   document.querySelectorAll('.panel-dock, .panel-toggle').forEach((d) => d.remove());
 
+  document.body.classList.add(
+    'panel-top-collapsed',
+    'panel-bottom-collapsed',
+    'panel-left-collapsed',
+    'panel-right-collapsed'
+  );
+
   const state = loadState();
   if (!sessionStorage.getItem('simulatia.inspectorRailV1')) {
     state.inspector = false;
