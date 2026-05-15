@@ -127,6 +127,35 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
 
   function v(x,y,z){return new THREE.Vector3(x,y,z)} function c(mat){return mat.clone()} function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
   function pickable(mesh,key,type,extra){mesh.userData.focusKey=key;mesh.userData.pickType=type||'node'; if(extra) Object.assign(mesh.userData,extra); selectable.push(mesh); if(key&&!focusObjects[key]) focusObjects[key]=mesh; return mesh}
+  function isAncestorVisible(obj){
+    var p=obj;
+    while(p){
+      if(!p.visible) return false;
+      p=p.parent;
+    }
+    return true;
+  }
+  function isRoomContext(){
+    return renderScope==='room'||(mode==='agent'&&(focus[selected]||{}).renderMode==='room');
+  }
+  function isRoomAgentPick(obj){
+    if(!obj||!obj.userData) return false;
+    if(obj.userData.agentRoom) return true;
+    if(obj.userData.agentGroup&&obj.userData.agentGroup.userData&&obj.userData.agentGroup.userData.roomAgent) return true;
+    return false;
+  }
+  function isRoomPickTarget(obj){
+    if(!obj||!obj.userData) return false;
+    if(obj.userData.pickType==='agent') return isRoomAgentPick(obj);
+    if(obj.userData.pickType==='room') return true;
+    return false;
+  }
+  function roomReturnKey(){
+    var ad=focus[selected];
+    if(ad&&ad.mode==='agent'&&ad.renderMode==='room') return ad.parentKey||'hq-room';
+    if(renderScope==='room'&&focus[selected]&&focus[selected].mode==='room') return focus[selected].key;
+    return 'hq-room';
+  }
   function deg(n){return n*Math.PI/180}
   function announce(t){var el=document.getElementById('toast'); if(!el)return; el.textContent=t; el.classList.add('show'); clearTimeout(announce.timer); announce.timer=setTimeout(function(){el.classList.remove('show')},1300)}
 
@@ -855,6 +884,9 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
       else d=focus.overview;
     }
     if(!d) return;
+    if(isRoomContext()&&!suppressHistory&&d.mode!=='room'&&d.mode!=='agent'){
+      return;
+    }
     var prev=selected, wasMode=mode;
     if(prev!==key){
       var prevDef=focus[prev];
@@ -863,7 +895,13 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     if(prev!==key && !silent && !suppressHistory){navStack.push(prev); if(navStack.length>12)navStack.shift();}
     selected=key;
     if(d.mode==='agent'){
-      if(d.renderMode==='agent'&&d.agentGroup) applyCityAgentFocus(d.agentGroup);
+      if(d.renderMode==='room'){
+        clearCityAgentFocus();
+        syncRoomPodFocus(d.key);
+      }else if(d.renderMode==='agent'&&d.agentGroup){
+        clearAgentPodFocus();
+        applyCityAgentFocus(d.agentGroup);
+      }
     }else{
       clearCityAgentFocus();
     }
@@ -929,7 +967,8 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   function goBack(){
     if((focus[selected]||{}).mode==='agent') leaveAgentFocus();
     var k=navStack.pop();
-    suppressHistory=true; focusTo(k||((focus[selected]&&focus[selected].parentKey)||'overview')); suppressHistory=false;
+    var backFallback=isRoomContext()?roomReturnKey():((focus[selected]&&focus[selected].parentKey)||'overview');
+    suppressHistory=true; focusTo(k||backFallback); suppressHistory=false;
   }
   function openAgent(item){
     comm.classList.add('show');
@@ -944,7 +983,8 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     var pos=item.pos?item.pos.clone():new THREE.Vector3(0,1,0);
     if(group) group.getWorldPosition(pos);
     var podKey=findRoomPodKey(agentKey,name,role)||agentKey;
-    var roomPod=isRoomPodAgent(podKey,item,group);
+    var inRoomView=renderScope==='room'||mode==='room'||!!item.roomOnly;
+    var roomPod=inRoomView||isRoomPodAgent(podKey,item,group);
     var tileKey=group&&group.userData?group.userData.tileKey:null;
     var renderMode, parentKey, podRadius, theta, phi, fov;
     if(roomPod){
@@ -963,7 +1003,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
     }else{
       if(!group) group=resolveAgentGroup(agentKey,item);
       renderMode='agent';
-      parentKey=(renderScope==='room'||renderScope==='building')?'hq-room':'overview';
+      parentKey=(renderScope==='building')?'hq-room':'overview';
       podRadius=3.4;
       theta=group?Math.atan2(camera.position.x-group.position.x,camera.position.z-group.position.z):S.theta;
       phi=.78;
@@ -1135,10 +1175,10 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   canvas.addEventListener('pointerdown',function(e){canvas.setPointerCapture(e.pointerId);activePointers[e.pointerId]={x:e.clientX,y:e.clientY};S.drag=true;S.pid=e.pointerId;S.moved=false;S.sx=S.lx=e.clientX;S.sy=S.ly=e.clientY;S.last=performance.now();canvas.classList.add('dragging')});
   canvas.addEventListener('pointermove',function(e){if(activePointers[e.pointerId])activePointers[e.pointerId]={x:e.clientX,y:e.clientY};var pts=pointerList(); if(pts.length>=2){var nd=dist2(pts[0],pts[1]); if(pinchDistance){S.targetRadius=clamp(S.targetRadius-(nd-pinchDistance)*.045,mode==='agent'?2.4:(mode==='room'?7.6:14),132); S.moved=true;} pinchDistance=nd; S.last=performance.now(); return;} if(!S.drag||S.pid!==e.pointerId)return;var dx=e.clientX-S.lx,dy=e.clientY-S.ly;if(Math.abs(e.clientX-S.sx)+Math.abs(e.clientY-S.sy)>4)S.moved=true;S.targetTheta-=dx*(mapMode?.0048:.0075);S.targetPhi=clamp(S.targetPhi+dy*(mapMode?.0038:.0058),.16,1.42);S.lx=e.clientX;S.ly=e.clientY});
   function end(e){delete activePointers[e.pointerId]; if(pointerList().length<2)pinchDistance=null; if(S.pid!==e.pointerId)return;S.drag=false;canvas.classList.remove('dragging');if(!S.moved)pick(e.clientX,e.clientY);S.pid=null} canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);canvas.addEventListener('pointerleave',end);
-  canvas.addEventListener('wheel',function(e){e.preventDefault();var agentMin=mode==='agent'?2.4:(mode==='room'?7.6:14);S.targetRadius=clamp(S.targetRadius+e.deltaY*(mapMode?.05:.035),agentMin,mapMode?155:128);S.last=performance.now();if(mode==='agent'){var ad=focus[selected];var exitR=ad&&ad.renderMode==='room'?12.5:11.5;if(S.radius>exitR&&S.targetRadius>exitR){leaveAgentFocus();focusTo(ad&&ad.parentKey?ad.parentKey:'overview');return}}if(S.targetRadius>118&&mode!=='worlds')focusTo('worlds')},{passive:false});
+  canvas.addEventListener('wheel',function(e){e.preventDefault();var agentMin=mode==='agent'?2.4:(mode==='room'?7.6:14);S.targetRadius=clamp(S.targetRadius+e.deltaY*(mapMode?.05:.035),agentMin,mapMode?155:128);S.last=performance.now();if(mode==='agent'){var ad=focus[selected];var exitR=ad&&ad.renderMode==='room'?12.5:11.5;if(S.radius>exitR&&S.targetRadius>exitR){leaveAgentFocus();focusTo(ad&&ad.renderMode==='room'?(ad.parentKey||'hq-room'):(ad&&ad.parentKey?ad.parentKey:'overview'));return}}if(isRoomContext())return;if(S.targetRadius>118&&mode!=='worlds')focusTo('worlds')},{passive:false});
   var ray=new THREE.Raycaster(), mouse=new THREE.Vector2();
-  function pick(x,y){var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hit=ray.intersectObjects(selectable,false)[0]; if(hit){var o=hit.object;if(o.userData.pickType==='agent'){var ak=o.userData.agentKey||o.userData.focusKey; openAgent({key:ak,name:o.userData.agentName,role:o.userData.agentRole,group:resolvePickAgentGroup(o,ak),roomOnly:!!o.userData.agentRoom});} else if(o.userData.focusKey){var k=o.userData.focusKey; if(mode==='building'&&selected===k&&focus[k]&&focus[k].canEnter)enterRoom(k); else focusTo(k)}}}
-  function hoverAt(x,y){if(S.drag)return; var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hit=ray.intersectObjects(selectable,false)[0]; hovered=hit?hit.object:null; canvas.style.cursor=hovered?'pointer':'grab'; if(hoverRing){if(hovered&&hovered.userData&&hovered.userData.focusKey){var wp=new THREE.Vector3(); hovered.getWorldPosition(wp); hoverRing.position.set(wp.x,.17,wp.z); var sx=hovered.userData.pickType==='agent'?.65:(hovered.geometry&&hovered.geometry.boundingSphere?hovered.geometry.boundingSphere.radius:1.2); hoverRing.scale.setScalar(Math.max(.55,Math.min(3.5,sx*.68))); hoverRing.visible=mode!=='agent'} else hoverRing.visible=false}}
+  function pick(x,y){var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hits=ray.intersectObjects(selectable,false), hit=null; for(var hi=0;hi<hits.length;hi++){var o=hits[hi].object; if(!isAncestorVisible(o)) continue; if(isRoomContext()&&!isRoomPickTarget(o)) continue; hit=hits[hi]; break;} if(!hit) return; var o=hit.object; if(o.userData.pickType==='agent'){var ak=o.userData.agentKey||o.userData.focusKey; openAgent({key:ak,name:o.userData.agentName,role:o.userData.agentRole,group:resolvePickAgentGroup(o,ak),roomOnly:isRoomContext()||!!o.userData.agentRoom});} else if(o.userData.focusKey){var k=o.userData.focusKey; if(isRoomContext()){if(focus[k]&&focus[k].mode==='room') focusTo(k); return;} if(mode==='building'&&selected===k&&focus[k]&&focus[k].canEnter)enterRoom(k); else focusTo(k)}}
+  function hoverAt(x,y){if(S.drag)return; var r=canvas.getBoundingClientRect(); mouse.x=((x-r.left)/r.width)*2-1; mouse.y=-((y-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera); var hits=ray.intersectObjects(selectable,false), hit=null; for(var hi=0;hi<hits.length;hi++){var o=hits[hi].object; if(!isAncestorVisible(o)) continue; if(isRoomContext()&&!isRoomPickTarget(o)) continue; hit=hits[hi]; break;} hovered=hit?hit.object:null; canvas.style.cursor=hovered?'pointer':'grab'; if(hoverRing){if(hovered&&hovered.userData&&(hovered.userData.focusKey||hovered.userData.pickType==='agent')){var wp=new THREE.Vector3(); hovered.getWorldPosition(wp); hoverRing.position.set(wp.x,.17,wp.z); var sx=hovered.userData.pickType==='agent'?.65:(hovered.geometry&&hovered.geometry.boundingSphere?hovered.geometry.boundingSphere.radius:1.2); hoverRing.scale.setScalar(Math.max(.55,Math.min(3.5,sx*.68))); hoverRing.visible=mode!=='agent'&&!isRoomContext()} else hoverRing.visible=false}}
   canvas.addEventListener('pointermove',function(e){hoverAt(e.clientX,e.clientY)});
   function project(pos){var p=pos.clone().project(camera);return{x:(p.x+1)*.5*wrap.clientWidth,y:(-p.y+1)*.5*wrap.clientHeight,z:p.z}}
   function updateLabels(){var visLabels=[]; labelData.forEach(function(it){var el=labelEls[it.key];if(!el)return;var show;if(renderScope==='agent'){show=it.type==='agent'&&it.key===selected;}else if(it.roomOnly){show=renderScope==='room';}else if(it.type==='world'){show=mode==='worlds';}else{show=renderScope==='city'&&mode!=='worlds'&&mode!=='agent';} if(mapMode&&renderScope==='city'&&it.type!=='agent')show=true;var p=project(it.pos);var vis=show&&p.z<1&&p.x>24&&p.x<wrap.clientWidth-24&&p.y>30&&p.y<wrap.clientHeight-20&&(mode==='room'||S.radius<94||it.type==='world'); if(vis) visLabels.push({it:it,el:el,p:p}); else {el.style.opacity='0'; el.style.pointerEvents='none';}}); visLabels.sort(function(a,b){return a.p.y-b.p.y}); for(var i=0;i<visLabels.length;i++){for(var j=0;j<i;j++){if(Math.abs(visLabels[i].p.x-visLabels[j].p.x)<116 && Math.abs(visLabels[i].p.y-visLabels[j].p.y)<34){visLabels[i].p.y=visLabels[j].p.y+34;}} var row=visLabels[i]; row.el.style.opacity='1'; row.el.style.pointerEvents='auto'; row.el.style.transform='translate(-50%,-100%) translate3d('+row.p.x.toFixed(1)+'px,'+row.p.y.toFixed(1)+'px,0)';}}
