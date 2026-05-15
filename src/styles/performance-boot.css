@@ -1,41 +1,60 @@
 /**
- * Boot & runtime performance — scene preview, no white flash, smooth reveal.
+ * Boot & runtime performance — live blurred city/room preview, smooth reveal.
  */
 
-/* Live blurred scene behind preloader */
+/* Scene visible from first frame — blurred city/rooms behind glass */
 body.sim-booting #scene-wrap {
   opacity: 1 !important;
   visibility: visible !important;
   z-index: 0 !important;
-  filter: blur(14px) brightness(0.92) saturate(1.05);
-  transform: scale(1.02);
+  filter: blur(22px) brightness(0.9) saturate(1.04);
+  transform: scale(1.03);
   transition:
-    filter 1s cubic-bezier(0.32, 0.72, 0, 1),
-    transform 1s cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 0.5s ease;
+    filter 1.35s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 1.35s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.65s ease;
 }
 
 body.sim-booting.boot-blur-mid #scene-wrap {
-  filter: blur(18px) brightness(0.9) saturate(1.04);
+  filter: blur(18px) brightness(0.91) saturate(1.05);
 }
 
-body.sim-booting.boot-scene-live #scene-wrap,
+body.sim-booting.boot-blur-heavy #scene-wrap {
+  filter: blur(14px) brightness(0.93) saturate(1.05);
+}
+
+body.sim-booting.boot-scene-live #scene-wrap {
+  filter: blur(11px) brightness(0.94) saturate(1.06);
+  transform: scale(1.02);
+}
+
+body.sim-booting.boot-scene-preview #scene-wrap,
 body.sim-booting.boot-interactive #scene-wrap {
-  filter: blur(8px) brightness(0.96) saturate(1.06);
-  transform: scale(1.01);
+  filter: blur(7px) brightness(0.96) saturate(1.07);
+  transform: scale(1.015);
+}
+
+body.sim-booting #v4Canvas,
+body.sim-booting #v8BackgroundCanvas {
+  opacity: 1 !important;
+  transition: opacity 0.8s ease;
 }
 
 body.sim-booting #v8BackgroundCanvas {
   display: block !important;
-  opacity: 0.45 !important;
+  opacity: 0.5 !important;
 }
 
 html[data-theme='dark'] body.sim-booting #v8BackgroundCanvas {
-  opacity: 0.38 !important;
+  opacity: 0.42 !important;
+}
+
+body.sim-booting #scene-wrap.scene-has-preview #v4Canvas {
+  opacity: 1 !important;
 }
 
 body.sim-booting #scene-wrap.scene-has-preview {
-  filter: blur(12px) brightness(0.94) saturate(1.05);
+  filter: blur(8px) brightness(0.95) saturate(1.06);
 }
 
 /* Boot overlay vignette */
@@ -52,56 +71,25 @@ body.sim-booting #scene-wrap.scene-has-preview {
 
 html[data-theme='dark'] .boot-shell::after {
   background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, rgba(0, 0, 0, 0.35) 100%),
-    linear-gradient(180deg, rgba(5, 5, 5, 0.25) 0%, rgba(5, 5, 5, 0.65) 100%);
+    linear-gradient(180deg, rgba(5, 5, 5, 0.55) 0%, transparent 14%, transparent 86%, rgba(5, 5, 5, 0.72) 100%),
+    radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, rgba(0, 0, 0, 0.35) 100%);
 }
 
-/* Progress bar */
-.boot-progress {
-  width: 100%;
-  max-width: 280px;
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-}
-
-.boot-progress-track {
-  height: 3px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.08);
-}
-
-html[data-theme='dark'] .boot-progress-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
+/* Progress bar — smooth width */
 .boot-progress-fill {
-  display: block;
-  height: 100%;
-  width: 0%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--foreground-2), var(--foreground));
-  transition: width 0.12s linear;
-  will-change: width;
+  transition: width 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.boot-progress-pct {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  text-align: right;
-}
-
-/* Reveal: scene sharpens, UI fades in */
+/* Reveal: sharpen scene, then UI */
 body.sim-revealing #scene-wrap {
-  filter: blur(4px) brightness(1) saturate(1.02);
+  filter: blur(3px) brightness(0.98) saturate(1.03) !important;
+  transform: scale(1.008) !important;
+  transition:
+    filter 0.85s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.85s cubic-bezier(0.32, 0.72, 0, 1) !important;
 }
 
+body.boot-reveal-sharp #scene-wrap,
 body.sim-ready #scene-wrap {
   filter: none !important;
   transform: none !important;
@@ -124,6 +112,23 @@ body.sim-ready:not(.sim-booting) .app-shell {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: none;
+  transition: opacity 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+body.sim-ready:not(.sim-booting) #app > *,
+body.sim-ready:not(.sim-booting) .app-shell > * {
+  animation: boot-ui-fade-in 0.55s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes boot-ui-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Canvas performance hints */
@@ -132,14 +137,16 @@ body.sim-ready:not(.sim-booting) .app-shell {
   touch-action: none;
 }
 
-#scene-wrap.scene-has-preview #v4Canvas {
-  opacity: 1;
-}
-
-/* Reduce boot shell weight on GPU */
 .boot-shell.is-fading {
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
+  transition: opacity 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.boot-shell.is-fading .boot-glass {
+  transition:
+    opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.55s cubic-bezier(0.34, 1.2, 0.56, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -153,5 +160,9 @@ body.sim-ready:not(.sim-booting) .app-shell {
 
   .boot-progress-fill {
     transition: none;
+  }
+
+  body.sim-ready:not(.sim-booting) #app > * {
+    animation: none !important;
   }
 }
