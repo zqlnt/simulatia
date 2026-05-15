@@ -103,7 +103,10 @@ async function loadRuntime() {
 }
 
 async function bootstrap() {
-  if (import.meta.hot && window.__simulatia) return;
+  if (import.meta.hot && window.__simulatia) {
+    stripBootChrome();
+    return;
+  }
 
   if (bootSessionComplete() && window.__simulatia) {
     stripBootChrome();

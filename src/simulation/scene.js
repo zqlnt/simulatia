@@ -646,7 +646,7 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
   labelData.push({key:'research-room',type:'room',name:'Research Bay',icon:'ti-microscope',pos:new THREE.Vector3(-4.15,1.62,.1),roomOnly:true,health:98});
   labelData.push({key:'design-room',type:'room',name:'Design Studio',icon:'ti-palette',pos:new THREE.Vector3(4.05,1.62,-.1),roomOnly:true,health:96});
 
-  function makeLabel(item){var el=document.createElement('div'); el.className='label'; el.innerHTML='<div class="label-card"><i class="ti '+(item.icon||'ti-building')+'"></i><b>'+item.name+'</b><span>'+(item.canEnter?'Enter':item.type==='agent'?(item.role||'Agent'):(item.health||96)+'%')+'</span></div><div class="stem"></div>'; el.onclick=function(){if(item.type==='agent')openAgent({key:item.key,name:item.name,role:item.role,pos:item.pos,roomOnly:item.roomOnly}); else if(item.canEnter&&selected===item.key) enterRoom(item.key); else focusTo(item.key)}; labels.appendChild(el); labelEls[item.key]=el}
+  function makeLabel(item){var el=document.createElement('div'); el.className='label'; el.innerHTML='<div class="label-card"><i class="ti '+(item.icon||'ti-building')+'"></i><b>'+item.name+'</b><span>'+(item.canEnter?'Enter':item.type==='agent'?(item.role||'Agent'):(item.health||96)+'%')+'</span></div><div class="stem"></div>'; el.onclick=function(){if(item.type==='agent')openAgent({key:item.key,name:item.name,role:item.role,pos:item.pos,roomOnly:item.roomOnly||isRoomContext()}); else if(item.canEnter&&selected===item.key) enterRoom(item.key); else if(isRoomContext()&&(!focus[item.key]||focus[item.key].mode!=='room')) return; else focusTo(item.key)}; labels.appendChild(el); labelEls[item.key]=el}
   labelData.forEach(makeLabel);
 
   // v11 layer model: explicit World → City → Building → Room → Agent relationships.
@@ -1031,16 +1031,9 @@ var mqMobile=window.matchMedia?window.matchMedia('(max-width: 760px), (pointer: 
       agentGroup:group||null,
     };
     finishViewportTransition();
-    if(roomPod){
-      syncRoomPodFocus(agentKey);
-    }else if(group){
-      applyCityAgentFocus(group);
-    }
     S.auto=false;
     S.radius=S.targetRadius=podRadius;
     focusTo(agentKey,true);
-    if(roomPod) syncRoomPodFocus(agentKey);
-    else if(group) applyCityAgentFocus(group);
     updatePanel(focus[agentKey]);
     setSelectedHalo(focus[agentKey]);
     if(store){
